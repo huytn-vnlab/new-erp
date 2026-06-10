@@ -1,0 +1,22 @@
+# dependencies
+node_modules
+
+# logs
+yarn-error.log
+npm-debug.log
+
+# Nuxt build
+.nuxt
+.output
+
+# Nuxt generate
+dist
+
+# OS
+.DS_Store
+
+# Playwright
+playwright/.auth/
+playwright-report/
+test-results/
+.env.test

@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPA V3 Layout Design</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #f1f5f9; color: #1e293b; }
+
+  .page-title {
+    padding: 20px 24px 8px;
+    font-size: 18px; font-weight: 700; color: #0f172a;
+  }
+  .page-sub {
+    padding: 0 24px 16px;
+    font-size: 13px; color: #64748b;
+  }
+
+  .mockup-wrapper {
+    margin: 0 24px 24px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,.12);
+    border: 1px solid #e2e8f0;
+    height: 560px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    height: 52px;
+    background: #fff;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  .hamburger {
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    background: transparent;
+    border: none; cursor: pointer;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 4px;
+  }
+  .hamburger span {
+    display: block; width: 16px; height: 2px;
+    background: #64748b; border-radius: 1px;
+  }
+  .breadcrumb {
+    flex: 1;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; color: #94a3b8;
+  }
+  .breadcrumb strong { color: #1e293b; font-weight: 600; }
+  .topbar-right {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .icon-btn {
+    width: 32px; height: 32px;
+    border-radius: 6px; background: transparent; border: none;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: #64748b; font-size: 15px;
+    transition: background .15s;
+  }
+  .icon-btn:hover { background: #f1f5f9; }
+  .user-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 10px 4px 4px;
+    border-radius: 8px; border: 1px solid #e2e8f0;
+    background: #fff; cursor: pointer;
+    font-size: 13px; color: #1e293b; font-weight: 500;
+    transition: background .15s;
+  }
+  .user-btn:hover { background: #f8fafc; }
+  .avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: #fff;
+  }
+
+  /* ── BODY ── */
+  .body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 240px;
+    background: #0f172a;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+  .sidebar-brand {
+    height: 52px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 16px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    flex-shrink: 0;
+  }
+  .brand-logo {
+    width: 30px; height: 30px;
+    background: #3b82f6;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0;
+  }
+  .brand-name {
+    font-size: 14px; font-weight: 700;
+    color: #f1f5f9; letter-spacing: -.01em;
+  }
+  .brand-sub {
+    font-size: 10px; color: #64748b; margin-top: 1px;
+  }
+
+  .nav-section { padding: 16px 8px 4px; }
+  .nav-label {
+    font-size: 10px; font-weight: 600;
+    color: #475569; text-transform: uppercase; letter-spacing: .06em;
+    padding: 0 8px; margin-bottom: 4px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background .15s;
+    margin-bottom: 1px;
+  }
+  .nav-item:hover { background: rgba(255,255,255,.06); }
+  .nav-item.active { background: rgba(59,130,246,.2); }
+  .nav-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+  .nav-text { font-size: 13px; color: #94a3b8; font-weight: 500; }
+  .nav-item.active .nav-text { color: #93c5fd; }
+  .nav-item .badge-nav {
+    margin-left: auto;
+    background: #1d4ed8;
+    color: #93c5fd;
+    font-size: 10px; font-weight: 600;
+    padding: 1px 6px; border-radius: 10px;
+  }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 12px 8px;
+    border-top: 1px solid rgba(255,255,255,.06);
+  }
+  .sidebar-user {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 7px;
+    cursor: pointer; transition: background .15s;
+  }
+  .sidebar-user:hover { background: rgba(255,255,255,.06); }
+  .sidebar-user-info { flex: 1; min-width: 0; }
+  .sidebar-user-name { font-size: 12px; font-weight: 600; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sidebar-user-email { font-size: 10px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── MAIN CONTENT ── */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    background: #f8fafc;
+    padding: 20px;
+  }
+
+  /* Tabs */
+  .tabs-bar {
+    display: flex; gap: 2px;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 16px;
+  }
+  .tab {
+    padding: 8px 16px;
+    font-size: 13px; font-weight: 500;
+    color: #64748b; cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color .15s, border-color .15s;
+  }
+  .tab:hover { color: #1e293b; }
+  .tab.active { color: #1d4ed8; border-bottom-color: #1d4ed8; }
+
+  /* Widgets */
+  .widgets-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .widget {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .widget-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .widget-title {
+    font-size: 13px; font-weight: 600; color: #1e293b;
+  }
+  .widget-link {
+    font-size: 11px; color: #3b82f6; cursor: pointer;
+  }
+  .widget-body { padding: 12px 16px; }
+
+  /* Reminder list */
+  .reminder-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid #f1f5f9;
+  }
+  .reminder-item:last-child { border-bottom: none; }
+  .reminder-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%; background: #3b82f6;
+    margin-top: 4px; flex-shrink: 0;
+  }
+  .reminder-dot.yellow { background: #f59e0b; }
+  .reminder-dot.green { background: #10b981; }
+  .reminder-text { flex: 1; }
+  .reminder-label { font-size: 12px; font-weight: 600; color: #374151; }
+  .reminder-date { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+  .reminder-name { font-size: 11px; color: #6b7280; }
+
+  /* Chart placeholder */
+  .chart-placeholder {
+    height: 140px;
+    display: flex; align-items: flex-end; gap: 8px;
+    padding: 0 4px;
+  }
+  .bar-group {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; gap: 3px;
+  }
+  .bar {
+    width: 100%; border-radius: 3px 3px 0 0;
+    background: #3b82f6;
+  }
+  .bar.light { background: #bfdbfe; }
+  .bar-label { font-size: 9px; color: #9ca3af; }
+
+  /* Stats row */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    margin-bottom: 14px;
+  }
+  .stat-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+    padding: 12px 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .stat-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .stat-value { font-size: 20px; font-weight: 700; color: #0f172a; line-height: 1; }
+  .stat-label { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+  /* Annotation */
+  .annotation {
+    position: absolute;
+    background: #1d4ed8;
+    color: #fff;
+    font-size: 10px; font-weight: 600;
+    padding: 3px 8px; border-radius: 10px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .annotation::after {
+    content: '';
+    position: absolute;
+    border: 4px solid transparent;
+  }
+
+  .labels-panel {
+    margin: 0 24px 24px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  }
+  .label-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .label-card h4 { font-size: 12px; font-weight: 700; color: #1e293b; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .label-card p { font-size: 12px; color: #64748b; line-height: 1.5; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="page-title">SPA V3 — Design Detail: Layout "Dark Sidebar + Command Bar"</div>
+<div class="page-sub">Hướng 2 (Tách component): AppSidebar + AppTopbar + shadcn Tabs/DropdownMenu/Sheet</div>
+
+<!-- Full App Mockup -->
+<div class="mockup-wrapper">
+  <!-- Topbar -->
+  <div class="topbar">
+    <button class="hamburger">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="breadcrumb">
+      Tổng quan &rsaquo; <strong>Bảng điều khiển</strong>
+    </div>
+    <div class="topbar-right">
+      <button class="icon-btn" title="Dark mode">🌙</button>
+      <button class="icon-btn" title="Thông báo" style="position:relative;">
+        🔔
+        <span style="position:absolute;top:4px;right:4px;width:8px;height:8px;background:#ef4444;border-radius:50%;border:2px solid #fff;"></span>
+      </button>
+      <div class="user-btn">
+        <div class="avatar">TH</div>
+        Trần Ngọc Huy
+        <span style="color:#94a3b8;font-size:12px;">▾</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-logo">VN</div>
+        <div>
+          <div class="brand-name">VNLab</div>
+          <div class="brand-sub">Micro ERP v3</div>
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">Tổng quan</div>
+        <div class="nav-item active">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-text" style="color:#93c5fd;">Bảng điều khiển</span>
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">Module</div>
+        <div class="nav-item">
+          <span class="nav-icon">🏖️</span>
+          <span class="nav-text">Nghỉ phép</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-icon">⏱️</span>
+          <span class="nav-text">Chấm công</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-icon">🕐</span>
+          <span class="nav-text">Tăng ca</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-icon">👔</span>
+          <span class="nav-text">Tuyển dụng</span>
+          <span class="badge-nav">3</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-icon">📋</span>
+          <span class="nav-text">Dự án</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-icon">⭐</span>
+          <span class="nav-text">Đánh giá</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-icon">🖥️</span>
+          <span class="nav-text">Tài sản</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-icon">📄</span>
+          <span class="nav-text">Hợp đồng</span>
+        </div>
+        <div class="nav-item">
+          <span class="nav-icon">👥</span>
+          <span class="nav-text">Nhân viên</span>
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">Hệ thống</div>
+        <div class="nav-item">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-text">Cài đặt</span>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="avatar" style="width:32px;height:32px;font-size:11px;">TH</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name">Trần Ngọc Huy</div>
+            <div class="sidebar-user-email">huy.tran@vnlab.com</div>
+          </div>
+          <span style="color:#475569;font-size:12px;">⋯</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="main">
+      <!-- Tabs -->
+      <div class="tabs-bar">
+        <div class="tab active">Thông tin công ty</div>
+        <div class="tab">Thông tin của bạn</div>
+        <div class="tab">Thông tin dự án</div>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#eff6ff;">👥</div>
+          <div>
+            <div class="stat-value">42</div>
+            <div class="stat-label">Tổng nhân viên</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#f0fdf4;">📋</div>
+          <div>
+            <div class="stat-value">7</div>
+            <div class="stat-label">Dự án đang chạy</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#fefce8;">⭐</div>
+          <div>
+            <div class="stat-value">Q2</div>
+            <div class="stat-label">Kỳ đánh giá hiện tại</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Widgets -->
+      <div class="widgets-grid">
+        <div class="widget">
+          <div class="widget-header">
+            <span class="widget-title">🔔 Nhắc nhở</span>
+          </div>
+          <div class="widget-body">
+            <div class="reminder-item">
+              <div class="reminder-dot yellow"></div>
+              <div class="reminder-text">
+                <div class="reminder-label">Sinh nhật</div>
+                <div class="reminder-date">1996-05-15</div>
+                <div class="reminder-name">Nguyễn Tấn Nam</div>
+              </div>
+            </div>
+            <div class="reminder-item">
+              <div class="reminder-dot yellow"></div>
+              <div class="reminder-text">
+                <div class="reminder-label">Sinh nhật</div>
+                <div class="reminder-date">1997-05-23</div>
+                <div class="reminder-name">Tiến Lê Đức</div>
+              </div>
+            </div>
+            <div class="reminder-item">
+              <div class="reminder-dot green"></div>
+              <div class="reminder-text">
+                <div class="reminder-label">Sinh nhật</div>
+                <div class="reminder-date">1999-06-08</div>
+                <div class="reminder-name">Vũ Thị Bích Diệp</div>
+              </div>
+            </div>
+            <div class="reminder-item">
+              <div class="reminder-dot"></div>
+              <div class="reminder-text">
+                <div class="reminder-label">Sinh nhật</div>
+                <div class="reminder-date">1994-06-07</div>
+                <div class="reminder-name">Nguyễn Mạnh Hoan</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="widget">
+          <div class="widget-header">
+            <span class="widget-title">📊 Nhân viên theo chức vụ</span>
+          </div>
+          <div class="widget-body">
+            <div class="chart-placeholder">
+              <div class="bar-group"><div class="bar" style="height:30px;"></div><div class="bar-label">GĐ</div></div>
+              <div class="bar-group"><div class="bar" style="height:25px;"></div><div class="bar-label">QL</div></div>
+              <div class="bar-group"><div class="bar" style="height:120px;"></div><div class="bar-label">Eng</div></div>
+              <div class="bar-group"><div class="bar light" style="height:40px;"></div><div class="bar-label">Asst</div></div>
+              <div class="bar-group"><div class="bar light" style="height:35px;"></div><div class="bar-label">BOM</div></div>
+              <div class="bar-group"><div class="bar light" style="height:50px;"></div><div class="bar-label">Intern</div></div>
+              <div class="bar-group"><div class="bar light" style="height:20px;"></div><div class="bar-label">Lead</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Component breakdown -->
+<div class="labels-panel">
+  <div class="label-card">
+    <h4><span class="dot" style="background:#0f172a;"></span>AppSidebar.vue</h4>
+    <p>Navy #0f172a, 240px mặc định → 64px icon-only. Nav groups có section label. Footer user info. Dùng <code>NuxtLink</code> + permission guard giữ nguyên.</p>
+  </div>
+  <div class="label-card">
+    <h4><span class="dot" style="background:#3b82f6;"></span>AppTopbar.vue</h4>
+    <p>Breadcrumb động từ layoutStore. Notification bell giữ nguyên. User button dùng shadcn <code>DropdownMenu</code>: Profile / Đổi mật khẩu / Đăng xuất.</p>
+  </div>
+  <div class="label-card">
+    <h4><span class="dot" style="background:#10b981;"></span>home-admin.vue (page)</h4>
+    <p>Dùng shadcn <code>Tabs</code> cho 3 tabs. Thêm stat cards KPI ở trên. Widget Nhắc nhở + biểu đồ giữ nguyên, bọc trong shadcn <code>Card</code>.</p>
+  </div>
+</div>
+
+<p style="text-align:center;font-size:13px;color:#64748b;padding-bottom:24px;">Bạn có muốn thay đổi gì trong thiết kế này không? Nếu ổn, tôi sẽ viết design doc.</p>
+</body>
+</html>

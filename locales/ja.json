@@ -1,0 +1,196 @@
+{
+  "nav": {
+    "dashboard":    "ダッシュボード",
+    "leave":        "休暇",
+    "timekeeping":  "勤怠管理",
+    "overtime":     "残業",
+    "recruitment":  "採用",
+    "project":      "プロジェクト",
+    "evaluation":   "評価",
+    "assets":       "資産",
+    "contract":     "契約",
+    "registration": "登録",
+    "target":       "目標",
+    "statistic":    "統計",
+    "member":       "人事",
+    "setting":      "設定",
+    "hrm":               "HRM",
+    "workflow":          "ワークフロー",
+    "request":           "リクエスト",
+    "manageRecruitment": "採用管理",
+    "section": {
+      "overview": "概要",
+      "module":   "モジュール",
+      "system":   "設定"
+    }
+  },
+  "auth": {
+    "login":             "ログイン",
+    "logout":            "ログアウト",
+    "email":             "メールアドレス",
+    "password":          "パスワード",
+    "remember":          "ログインを記憶する",
+    "forgot":            "パスワードを忘れた方",
+    "loginBtn":          "ログイン",
+    "loggingIn":         "ログイン中...",
+    "invalidCredentials":"メールアドレスまたはパスワードが正しくありません。",
+    "sessionExpired":    "セッションの有効期限が切れました。再度ログインしてください。",
+    "loginSubtitle":     "アカウント情報でログインしてください",
+    "googleLogin":       "Googleアカウントでログイン",
+    "noOrg":             "組織をお持ちでない方?",
+    "registerNow":       "今すぐ登録",
+    "registerMember":    "この組織のメンバーとして登録",
+    "required":          "必須",
+    "invalidEmail":      "無効なメールアドレス",
+    "minPassword":       "パスワードは6文字以上必要です",
+    "unexpectedError":   "予期しないエラーが発生しました。再試行してください。"
+  },
+  "org": {
+    "findTitle":       "組織を探す",
+    "findSubtitle":    "ログインする組織名を入力してください。",
+    "findPlaceholder": "組織名",
+    "findBtn":         "続ける",
+    "findMin":         "2文字以上入力してください",
+    "findNotFound":    "組織が見つかりませんでした。名前を確認してください。",
+    "code":            "コード"
+  },
+  "common": {
+    "save":     "保存",
+    "cancel":   "キャンセル",
+    "delete":   "削除",
+    "edit":     "編集",
+    "create":   "新規作成",
+    "search":   "検索",
+    "loading":  "読み込み中...",
+    "noData":   "データがありません",
+    "confirm":  "確認",
+    "close":    "閉じる",
+    "actions":  "操作",
+    "status":   "ステータス",
+    "from":     "開始日",
+    "to":       "終了日",
+    "note":     "備考",
+    "all":      "すべて",
+    "yes":      "はい",
+    "no":       "いいえ",
+    "prev": "前へ",
+    "next": "次へ"
+  },
+  "pagination": {
+    "showing": "{total}件中 {from}〜{to}件を表示"
+  },
+  "leave": {
+    "title":     "休暇",
+    "request":   "休暇申請",
+    "type":      "休暇種別",
+    "startDate": "開始日",
+    "endDate":   "終了日",
+    "reason":    "理由",
+    "status":    "ステータス",
+    "remaining": "残日数",
+    "annual":    "年次有給休暇",
+    "sick":      "病気休暇",
+    "unpaid":    "無給休暇",
+    "approved":  "承認済み",
+    "rejected":  "却下",
+    "pending":   "審査中",
+    "submit":    "申請する",
+    "approve":   "承認",
+    "reject":    "却下"
+  },
+  "timekeeping": {
+    "title":      "勤怠管理",
+    "checkIn":    "出勤時刻",
+    "checkOut":   "退勤時刻",
+    "date":       "日付",
+    "hours":      "時間数",
+    "doCheckIn":  "出勤打刻",
+    "doCheckOut": "退勤打刻",
+    "today":      "今日"
+  },
+  "overtime": {
+    "title":   "残業",
+    "request": "残業申請",
+    "date":    "日付",
+    "hours":   "時間数",
+    "reason":  "理由"
+  },
+  "recruitment": {
+    "title":     "採用",
+    "position":  "ポジション",
+    "candidate": "候補者",
+    "status":    "ステータス",
+    "cv":        "履歴書"
+  },
+  "project": {
+    "title":       "プロジェクト",
+    "name":        "プロジェクト名",
+    "description": "説明",
+    "startDate":   "開始日",
+    "endDate":     "終了日",
+    "members":     "メンバー",
+    "tasks":       "タスク"
+  },
+  "notification": {
+    "title":   "通知",
+    "markAll": "すべて既読にする",
+    "empty":   "新しい通知はありません"
+  },
+  "validation": {
+    "required":  "この項目は必須です",
+    "email":     "メールアドレスの形式が正しくありません",
+    "min":       "{min}文字以上で入力してください",
+    "max":       "{max}文字以内で入力してください",
+    "phone":     "電話番号の形式が正しくありません",
+    "confirmed": "確認入力が一致しません"
+  },
+  "hrm": {
+    "member": {
+      "member": "メンバー"
+    },
+    "leave": {
+      "nav": {
+        "history":      "休暇管理",
+        "request":      "休暇申請",
+        "dayInfo":      "休暇日情報",
+        "bonusHistory": "特別休暇履歴"
+      },
+      "history": {
+        "title":                   "休暇履歴",
+        "filterMember":            "メンバーを検索",
+        "filterMemberPlaceholder": "検索...",
+        "manageDetail":            "休暇詳細管理",
+        "days": {
+          "mon": "月曜日",
+          "tue": "火曜日",
+          "wed": "水曜日",
+          "thu": "木曜日",
+          "fri": "金曜日",
+          "sat": "土曜日",
+          "sun": "日曜日"
+        }
+      },
+      "create": {
+        "title":            "休暇申請作成",
+        "remaining":        "残余年次有給",
+        "used":             "使用済み",
+        "fromPrevYear":     "前年度繰越",
+        "workingDaysLabel": "勤務日数",
+        "days":             "日",
+        "submitError":      "申請の送信に失敗しました。もう一度お試しください。"
+      },
+      "manage": {
+        "title":               "休暇申請管理",
+        "allStatuses":         "すべてのステータス",
+        "filterNamePlaceholder": "従業員名で検索...",
+        "rejectTitle":         "休暇申請を却下",
+        "rejectPrompt":        "却下理由を入力してください（対象者：",
+        "rejectPlaceholder":   "却下理由...",
+        "columns": {
+          "employee": "従業員",
+          "type":     "休暇種別"
+        }
+      }
+    }
+  }
+}

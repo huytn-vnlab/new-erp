@@ -1,0 +1,196 @@
+{
+  "nav": {
+    "dashboard":    "Dashboard",
+    "leave":        "Leave",
+    "timekeeping":  "Timekeeping",
+    "overtime":     "Overtime",
+    "recruitment":  "Recruitment",
+    "project":      "Projects",
+    "evaluation":   "Evaluation",
+    "assets":       "Assets",
+    "contract":     "Contracts",
+    "registration": "Registration",
+    "target":       "Targets",
+    "statistic":    "Statistics",
+    "manageMember": "Manage Members",
+    "setting":      "Settings",
+    "hrm":               "HRM",
+    "workflow":          "Workflow",
+    "request":           "Request",
+    "manageRecruitment": "Manage Recruitment",
+    "section": {
+      "overview": "Overview",
+      "module":   "Module",
+      "system":   "Settings"
+    }
+  },
+  "auth": {
+    "login":             "Login",
+    "logout":            "Logout",
+    "email":             "Email",
+    "password":          "Password",
+    "remember":          "Remember me",
+    "forgot":            "Forgot password?",
+    "loginBtn":          "Sign in",
+    "loggingIn":         "Signing in...",
+    "invalidCredentials":"Invalid email or password.",
+    "sessionExpired":    "Session expired, please sign in again.",
+    "loginSubtitle":     "Sign in with your credentials",
+    "googleLogin":       "Sign in with Google account",
+    "noOrg":             "Don't have an organization?",
+    "registerNow":       "Register now",
+    "registerMember":    "Register as a member of this organization",
+    "required":          "Required",
+    "invalidEmail":      "Invalid email",
+    "minPassword":       "Password must be at least 6 characters",
+    "unexpectedError":   "An unexpected error occurred, please try again."
+  },
+  "org": {
+    "findTitle":       "Find Organization",
+    "findSubtitle":    "Enter your organization name to sign in.",
+    "findPlaceholder": "Organization name",
+    "findBtn":         "Continue",
+    "findMin":         "Enter at least 2 characters",
+    "findNotFound":    "Organization not found. Please check the name.",
+    "code":            "Code"
+  },
+  "common": {
+    "save":     "Save",
+    "cancel":   "Cancel",
+    "delete":   "Delete",
+    "edit":     "Edit",
+    "create":   "Create",
+    "search":   "Search",
+    "loading":  "Loading...",
+    "noData":   "No data available",
+    "confirm":  "Confirm",
+    "close":    "Close",
+    "actions":  "Actions",
+    "status":   "Status",
+    "from":     "From",
+    "to":       "To",
+    "note":     "Note",
+    "all":      "All",
+    "yes":      "Yes",
+    "no":       "No",
+    "prev": "Previous",
+    "next": "Next"
+  },
+  "pagination": {
+    "showing": "Showing {from}–{to} of {total} records"
+  },
+  "leave": {
+    "title":     "Leave",
+    "request":   "Leave request",
+    "type":      "Leave type",
+    "startDate": "Start date",
+    "endDate":   "End date",
+    "reason":    "Reason",
+    "status":    "Status",
+    "remaining": "Days remaining",
+    "annual":    "Annual leave",
+    "sick":      "Sick leave",
+    "unpaid":    "Unpaid leave",
+    "approved":  "Approved",
+    "rejected":  "Rejected",
+    "pending":   "Pending",
+    "submit":    "Submit request",
+    "approve":   "Approve",
+    "reject":    "Reject"
+  },
+  "timekeeping": {
+    "title":      "Timekeeping",
+    "checkIn":    "Check-in",
+    "checkOut":   "Check-out",
+    "date":       "Date",
+    "hours":      "Hours",
+    "doCheckIn":  "Check In",
+    "doCheckOut": "Check Out",
+    "today":      "Today"
+  },
+  "overtime": {
+    "title":   "Overtime",
+    "request": "OT Request",
+    "date":    "Date",
+    "hours":   "Hours",
+    "reason":  "Reason"
+  },
+  "recruitment": {
+    "title":     "Recruitment",
+    "position":  "Position",
+    "candidate": "Candidate",
+    "status":    "Status",
+    "cv":        "CV / Resume"
+  },
+  "project": {
+    "title":       "Projects",
+    "name":        "Project name",
+    "description": "Description",
+    "startDate":   "Start date",
+    "endDate":     "End date",
+    "members":     "Members",
+    "tasks":       "Tasks"
+  },
+  "notification": {
+    "title":   "Notifications",
+    "markAll": "Mark all as read",
+    "empty":   "No new notifications"
+  },
+  "validation": {
+    "required":  "This field is required",
+    "email":     "Invalid email address",
+    "min":       "Minimum {min} characters",
+    "max":       "Maximum {max} characters",
+    "phone":     "Invalid phone number",
+    "confirmed": "Confirmation does not match"
+  },
+  "hrm": {
+    "member": {
+      "member": "Member"
+    },
+    "leave": {
+      "nav": {
+        "history":      "Leave Management",
+        "request":      "Leave Request",
+        "dayInfo":      "Leave Day Info",
+        "bonusHistory": "Bonus Leave History"
+      },
+      "history": {
+        "title":                   "Leave History",
+        "filterMember":            "Find member",
+        "filterMemberPlaceholder": "Search...",
+        "manageDetail":            "Manage leave detail",
+        "days": {
+          "mon": "Monday",
+          "tue": "Tuesday",
+          "wed": "Wednesday",
+          "thu": "Thursday",
+          "fri": "Friday",
+          "sat": "Saturday",
+          "sun": "Sunday"
+        }
+      },
+      "create": {
+        "title":            "Create Leave Request",
+        "remaining":        "Annual leave remaining",
+        "used":             "Used",
+        "fromPrevYear":     "From previous year",
+        "workingDaysLabel": "Working days",
+        "days":             "days",
+        "submitError":      "Failed to submit request, please try again."
+      },
+      "manage": {
+        "title":               "Manage Leave Requests",
+        "allStatuses":         "All statuses",
+        "filterNamePlaceholder": "Search by employee name...",
+        "rejectTitle":         "Reject Leave Request",
+        "rejectPrompt":        "Enter rejection reason for",
+        "rejectPlaceholder":   "Rejection reason...",
+        "columns": {
+          "employee": "Employee",
+          "type":     "Leave type"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,198 @@
+{
+  "nav": {
+    "dashboard":    "Bảng điều khiển",
+    "leave":        "Nghỉ phép",
+    "timekeeping":  "Chấm công",
+    "overtime":     "Làm thêm giờ",
+    "recruitment":  "Tuyển dụng",
+    "project":      "Dự án",
+    "evaluation":   "Đánh giá",
+    "assets":       "Tài sản",
+    "contract":     "Hợp đồng",
+    "registration": "Đăng ký",
+    "target":       "Mục tiêu",
+    "statistic":    "Thống kê",
+    "manageMember": "Quản lí thành viên",
+    "setting":      "Cài đặt",
+    "hrm":               "HRM",
+    "workflow":          "Luồng làm việc",
+    "request":           "Yêu cầu",
+    "manageRecruitment": "Quản lí tuyển dụng",
+    "section": {
+      "overview":   "Tổng quan",
+      "module":     "Module",
+      "system":     "Hệ thống"
+    }
+  },
+  "auth": {
+    "login":            "Đăng nhập",
+    "logout":           "Đăng xuất",
+    "email":            "Email",
+    "password":         "Mật khẩu",
+    "remember":         "Ghi nhớ đăng nhập",
+    "forgot":           "Quên mật khẩu?",
+    "loginBtn":         "Đăng nhập",
+    "loggingIn":        "Đang đăng nhập...",
+    "invalidCredentials":"Email hoặc mật khẩu không đúng.",
+    "sessionExpired":   "Phiên đăng nhập hết hạn, vui lòng đăng nhập lại.",
+    "loginSubtitle":    "Đăng nhập bằng thông tin của bạn",
+    "googleLogin":      "Đăng nhập với tài khoản Google",
+    "noOrg":            "Chưa có tổ chức ?",
+    "registerNow":      "Đăng kí ngay",
+    "registerMember":   "Đăng kí làm thành viên của tổ chức này",
+    "required":         "Bắt buộc",
+    "invalidEmail":     "Email không hợp lệ",
+    "minPassword":      "Mật khẩu ít nhất 6 ký tự",
+    "unexpectedError":  "Đã có lỗi xảy ra, vui lòng thử lại."
+  },
+  "org": {
+    "findTitle":       "Tìm tổ chức",
+    "findSubtitle":    "Nhập tên tổ chức của bạn để đăng nhập.",
+    "findPlaceholder": "Tên tổ chức",
+    "findBtn":         "Tiếp tục",
+    "findMin":         "Nhập ít nhất 2 ký tự",
+    "findNotFound":    "Không tìm thấy tổ chức. Kiểm tra lại tên.",
+    "code":            "Mã"
+  },
+  "common": {
+    "save":     "Lưu",
+    "cancel":   "Hủy",
+    "delete":   "Xóa",
+    "edit":     "Chỉnh sửa",
+    "create":   "Tạo mới",
+    "search":   "Tìm kiếm",
+    "loading":  "Đang tải...",
+    "noData":   "Không có dữ liệu",
+    "confirm":  "Xác nhận",
+    "close":    "Đóng",
+    "actions":  "Thao tác",
+    "status":   "Trạng thái",
+    "from":     "Từ ngày",
+    "to":       "Đến ngày",
+    "note":     "Ghi chú",
+    "all":      "Tất cả",
+    "yes":      "Có",
+    "no":       "Không",
+    "profile":  "Hồ sơ",
+    "changePassword": "Đổi mật khẩu",
+    "prev": "Trước",
+    "next": "Sau"
+  },
+  "pagination": {
+    "showing": "Hiển thị {from}–{to} / {total} bản ghi"
+  },
+  "leave": {
+    "title":          "Nghỉ phép",
+    "request":        "Đơn nghỉ phép",
+    "type":           "Loại nghỉ",
+    "startDate":      "Ngày bắt đầu",
+    "endDate":        "Ngày kết thúc",
+    "reason":         "Lý do",
+    "status":         "Trạng thái",
+    "remaining":      "Số ngày còn lại",
+    "annual":         "Nghỉ phép năm",
+    "sick":           "Nghỉ bệnh",
+    "unpaid":         "Nghỉ không lương",
+    "approved":       "Đã duyệt",
+    "rejected":       "Từ chối",
+    "pending":        "Chờ duyệt",
+    "submit":         "Gửi đơn",
+    "approve":        "Duyệt",
+    "reject":         "Từ chối"
+  },
+  "timekeeping": {
+    "title":      "Chấm công",
+    "checkIn":    "Giờ vào",
+    "checkOut":   "Giờ ra",
+    "date":       "Ngày",
+    "hours":      "Số giờ",
+    "doCheckIn":  "Chấm công vào",
+    "doCheckOut": "Chấm công ra",
+    "today":      "Hôm nay"
+  },
+  "overtime": {
+    "title":    "Làm thêm giờ",
+    "request":  "Đăng ký OT",
+    "date":     "Ngày",
+    "hours":    "Số giờ",
+    "reason":   "Lý do"
+  },
+  "recruitment": {
+    "title":      "Tuyển dụng",
+    "position":   "Vị trí",
+    "candidate":  "Ứng viên",
+    "status":     "Trạng thái",
+    "cv":         "Hồ sơ"
+  },
+  "project": {
+    "title":       "Dự án",
+    "name":        "Tên dự án",
+    "description": "Mô tả",
+    "startDate":   "Ngày bắt đầu",
+    "endDate":     "Ngày kết thúc",
+    "members":     "Thành viên",
+    "tasks":       "Công việc"
+  },
+  "notification": {
+    "title":    "Thông báo",
+    "markAll":  "Đánh dấu tất cả đã đọc",
+    "empty":    "Không có thông báo mới"
+  },
+  "validation": {
+    "required":   "Trường này là bắt buộc",
+    "email":      "Email không hợp lệ",
+    "min":        "Tối thiểu {min} ký tự",
+    "max":        "Tối đa {max} ký tự",
+    "phone":      "Số điện thoại không hợp lệ",
+    "confirmed":  "Xác nhận không khớp"
+  },
+  "hrm": {
+    "member": {
+      "member": "Thành viên"
+    },
+    "leave": {
+      "nav": {
+        "history":      "Quản lý nghỉ phép",
+        "request":      "Yêu cầu nghỉ phép",
+        "dayInfo":      "Thông tin ngày phép",
+        "bonusHistory": "Lịch sử nghỉ phép thêm"
+      },
+      "history": {
+        "title":                   "Lịch sử nghỉ phép",
+        "filterMember":            "Tìm thành viên",
+        "filterMemberPlaceholder": "Tìm kiếm...",
+        "manageDetail":            "Quản lý chi tiết nghỉ phép",
+        "days": {
+          "mon": "Thứ Hai",
+          "tue": "Thứ Ba",
+          "wed": "Thứ Tư",
+          "thu": "Thứ Năm",
+          "fri": "Thứ Sáu",
+          "sat": "Thứ Bảy",
+          "sun": "Chủ Nhật"
+        }
+      },
+      "create": {
+        "title":            "Tạo đơn nghỉ phép",
+        "remaining":        "Phép năm còn lại",
+        "used":             "Đã dùng",
+        "fromPrevYear":     "Từ năm trước",
+        "workingDaysLabel": "Số ngày làm việc",
+        "days":             "ngày",
+        "submitError":      "Gửi đơn không thành công, vui lòng thử lại."
+      },
+      "manage": {
+        "title":               "Quản lý đơn nghỉ phép",
+        "allStatuses":         "Tất cả trạng thái",
+        "filterNamePlaceholder": "Tìm tên nhân viên...",
+        "rejectTitle":         "Từ chối đơn nghỉ phép",
+        "rejectPrompt":        "Nhập lý do từ chối đơn của",
+        "rejectPlaceholder":   "Lý do từ chối...",
+        "columns": {
+          "employee": "Nhân viên",
+          "type":     "Loại nghỉ"
+        }
+      }
+    }
+  }
+}

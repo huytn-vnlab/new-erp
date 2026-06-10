@@ -1,0 +1,44 @@
+<h2>3 hướng triển khai Layout V3</h2>
+<p class="subtitle">Cùng design language (Dark sidebar navy #0f172a, topbar trắng, shadcn-vue) — khác nhau ở mức độ refactor</p>
+
+<div class="options">
+
+  <div class="option" data-choice="approach-1" onclick="toggleSelect(this)">
+    <div class="letter">1</div>
+    <div class="content">
+      <h3>Nâng cấp tại chỗ (Incremental)</h3>
+      <p>Giữ nguyên file <code>layouts/admin.vue</code>, chỉ thay CSS classes + thêm shadcn components vào từng phần. Sidebar đổi sang navy, nav items dùng shadcn <code>Button</code> variant ghost, topbar dùng shadcn <code>DropdownMenu</code> cho user menu.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Ưu điểm</h4><ul><li>Ít rủi ro, dễ review</li><li>Không phá vỡ pages hiện có</li><li>Nhanh nhất</li></ul></div>
+        <div class="cons"><h4>Nhược điểm</h4><ul><li>Cấu trúc file vẫn monolith</li><li>Khó mở rộng sau này</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="approach-2" onclick="toggleSelect(this)">
+    <div class="letter">2</div>
+    <div class="content">
+      <h3>Tách component (Recommended ✓)</h3>
+      <p>Tách <code>admin.vue</code> thành 3 component riêng: <code>AppSidebar.vue</code>, <code>AppTopbar.vue</code>, <code>AppDashboard.vue</code>. Dùng shadcn <code>Sheet</code> cho mobile sidebar, <code>DropdownMenu</code> cho user, <code>Tabs</code> cho dashboard. Layout store giữ trạng thái sidebar.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Ưu điểm</h4><ul><li>Dễ maintain và test riêng từng phần</li><li>Reusable components</li><li>Phù hợp mở rộng module mới</li></ul></div>
+        <div class="cons"><h4>Nhược điểm</h4><ul><li>Cần refactor admin.vue và home-admin.vue</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="approach-3" onclick="toggleSelect(this)">
+    <div class="letter">3</div>
+    <div class="content">
+      <h3>Full Design System (Ambitious)</h3>
+      <p>Xây dựng thư mục <code>components/layout/</code> đầy đủ với Sidebar, Topbar, NavItem, SectionLabel, UserMenu. Thêm <code>components/dashboard/</code> riêng với DashboardTabs, ReminderCard, ChartCard. Dùng shadcn <code>ScrollArea</code>, <code>Separator</code>, <code>Avatar</code>, <code>Badge</code>.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Ưu điểm</h4><ul><li>Chuẩn nhất, dễ scale</li><li>Từng component độc lập</li></ul></div>
+        <div class="cons"><h4>Nhược điểm</h4><ul><li>Tốn công nhất</li><li>Overkill nếu team nhỏ</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p style="margin-top:16px;font-size:13px;color:#64748b;text-align:center;">Tôi recommend <strong>Hướng 2</strong> — cân bằng giữa chất lượng code và tốc độ triển khai. Bạn đồng ý không?</p>
