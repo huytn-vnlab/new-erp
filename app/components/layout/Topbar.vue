@@ -33,13 +33,15 @@ onClickOutside(root, closeAll)
 
     <!-- Language -->
     <div class="relative">
-      <button class="flex items-center gap-1.5 p-1.5 px-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+      <button
+class="flex items-center gap-1.5 p-1.5 px-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               @click="closeAll(); langOpen = !langOpen">
         <img :src="FLAGS[locale]" alt="" class="h-4 w-5 rounded-[2px] object-cover" >
         <span class="text-[11px] font-semibold uppercase">{{ locale }}</span>
       </button>
       <div v-if="langOpen" class="absolute right-0 top-full mt-1 w-44 rounded-lg border border-border bg-popover shadow-popover py-1 z-50">
-        <button v-for="l in ['vi', 'en', 'ja']" :key="l"
+        <button
+v-for="l in ['vi', 'en', 'ja']" :key="l"
                 :class="'w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-foreground hover:bg-muted transition-colors ' + (locale === l ? 'bg-muted/60 font-medium' : '')"
                 @click="emit('update:locale', l); langOpen = false">
           <img :src="FLAGS[l]" alt="" class="h-4 w-5 rounded-[2px] object-cover" >
@@ -59,7 +61,8 @@ onClickOutside(root, closeAll)
     <div class="relative">
       <button class="relative p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" @click="closeAll(); bellOpen = !bellOpen">
         <Bell :size="16" />
-        <span v-if="unread > 0" class="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 rounded-full text-[10px] font-semibold text-white flex items-center justify-center"
+        <span
+v-if="unread > 0" class="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 rounded-full text-[10px] font-semibold text-white flex items-center justify-center"
               :style="{ background: 'linear-gradient(135deg, hsl(0 80% 60%), hsl(355 75% 50%))' }">{{ unread }}</span>
       </button>
       <div v-if="bellOpen" class="absolute right-0 top-full mt-1 w-[340px] rounded-lg border border-border bg-popover shadow-popover z-50 overflow-hidden">
@@ -84,14 +87,16 @@ onClickOutside(root, closeAll)
     <!-- User -->
     <div class="relative">
       <button class="flex items-center gap-2 p-1 pr-2 rounded-lg hover:bg-muted transition-colors" @click="closeAll(); userOpen = !userOpen">
-        <span class="inline-flex items-center justify-center w-8 h-8 rounded-md text-[11.5px] font-semibold text-white"
+        <span
+class="inline-flex items-center justify-center w-8 h-8 rounded-md text-[11.5px] font-semibold text-white"
               :style="{ background: 'linear-gradient(135deg, hsl(var(--primary-h) var(--primary-s) 60%), hsl(var(--primary-h) var(--primary-s) 40%))' }">NA</span>
         <span class="text-[13px] font-medium text-foreground hidden lg:inline">Nguyễn Văn An</span>
         <ChevronDown :size="14" class="text-muted-foreground/80 hidden lg:inline" />
       </button>
       <div v-if="userOpen" class="absolute right-0 top-full mt-1 w-60 rounded-lg border border-border bg-popover shadow-popover z-50 overflow-hidden">
         <div class="px-3 py-3 flex items-center gap-3 border-b border-border">
-          <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg text-[13px] font-semibold text-white"
+          <span
+class="inline-flex items-center justify-center w-10 h-10 rounded-lg text-[13px] font-semibold text-white"
                 :style="{ background: 'linear-gradient(135deg, hsl(var(--primary-h) var(--primary-s) 60%), hsl(var(--primary-h) var(--primary-s) 40%))' }">NA</span>
           <div class="min-w-0">
             <p class="text-[13px] font-semibold text-foreground truncate">Nguyễn Văn An</p>

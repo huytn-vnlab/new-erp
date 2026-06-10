@@ -19,7 +19,8 @@ const v = computed(() => MAP[props.variant] ?? MAP.gray)
 </script>
 
 <template>
-  <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium font-mono"
+  <span
+class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium font-mono"
         :style="{ background: v.bg, color: v.fg }">
     <span v-if="dot" data-dot class="h-1.5 w-1.5 rounded-full" :style="{ background: v.dot }" />
     <slot />

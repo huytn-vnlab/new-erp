@@ -13,12 +13,14 @@ const activeTab = ref('company')
 </script>
 
 <template>
-  <Banner />
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <StatCard v-for="(s, i) in dashboardStats" :key="i" v-bind="s" :delay="80 + i * 60" />
+  <div class="space-y-6">
+    <Banner />
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <StatCard v-for="(s, i) in dashboardStats" :key="i" v-bind="s" :delay="80 + i * 60" />
+    </div>
+    <Tabs v-model="activeTab" :items="homeTabs" />
+    <CompanyTab v-if="activeTab === 'company'" />
+    <PersonalTab v-else-if="activeTab === 'personal'" />
+    <ProjectTab v-else />
   </div>
-  <Tabs v-model="activeTab" :items="homeTabs" />
-  <CompanyTab v-if="activeTab === 'company'" />
-  <PersonalTab v-else-if="activeTab === 'personal'" />
-  <ProjectTab v-else />
 </template>

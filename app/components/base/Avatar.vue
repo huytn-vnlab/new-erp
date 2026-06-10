@@ -17,7 +17,8 @@ const hue = computed(() => {
 </script>
 
 <template>
-  <span class="inline-flex items-center justify-center font-semibold text-white shrink-0 rounded-lg font-heading"
+  <span
+class="inline-flex items-center justify-center font-semibold text-white shrink-0 rounded-lg font-heading"
         :style="{ width: size + 'px', height: size + 'px', fontSize: size * 0.36 + 'px',
           background: `linear-gradient(135deg, hsl(${hue} 70% 62%), hsl(${(hue + 30) % 360} 65% 42%))` }">
     {{ initials }}

@@ -14,7 +14,8 @@ const tickFormat = (i: number) => props.data[i]?.label ?? ''
     <VisXYContainer :data="data" :height="height">
       <VisArea :x="x" :y="y" color="hsl(var(--primary))" :opacity="0.18" />
       <VisLine :x="x" :y="y" color="hsl(var(--primary))" :line-width="2" />
-      <VisScatter :x="x" :y="y" color="hsl(var(--card))" :size="8"
+      <VisScatter
+:x="x" :y="y" color="hsl(var(--card))" :size="8"
                   stroke-color="hsl(var(--primary))" :stroke-width="2" />
       <VisAxis type="x" :tick-format="tickFormat" :grid-line="false" :tick-line="false" :domain-line="false" />
       <VisAxis type="y" :num-ticks="5" :grid-line="true" :tick-line="false" :domain-line="false" />

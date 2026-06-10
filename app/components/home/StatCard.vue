@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, type Component } from 'vue'
 import { Users, Folder, Star, TrendingUp, TrendingDown } from 'lucide-vue-next'
 import Sparkline from '~/components/charts/Sparkline.vue'
 import type { StatCardData } from '~/types'
 
 const props = withDefaults(defineProps<StatCardData & { delay?: number }>(), { delay: 0 })
-const ICONS: Record<string, any> = { Users, Folder, Star }
+const ICONS: Record<string, Component> = { Users, Folder, Star }
 const trendUp = computed(() => props.trend?.dir === 'up')
 </script>
 
 <template>
-  <div class="card-surface interactive p-5 rise flex flex-col gap-4"
+  <div
+class="card-surface interactive p-5 rise flex flex-col gap-4"
        :style="{ animationDelay: delay + 'ms', backgroundImage: 'radial-gradient(ellipse 80% 60% at 100% 0%, hsl(var(--primary-h) var(--primary-s) 57% / 0.09), transparent 70%)' }">
     <div class="flex items-start justify-between gap-3">
       <div>
@@ -23,7 +24,8 @@ const trendUp = computed(() => props.trend?.dir === 'up')
         </div>
         <p v-if="sublabel" class="text-[12px] text-muted-foreground mt-1">{{ sublabel }}</p>
       </div>
-      <div class="h-10 w-10 rounded-lg flex items-center justify-center shrink-0"
+      <div
+class="h-10 w-10 rounded-lg flex items-center justify-center shrink-0"
            :style="{ background: 'linear-gradient(135deg, hsl(var(--primary-h) var(--primary-s) 60% / 0.16), hsl(var(--primary-h) var(--primary-s) 40% / 0.10))', color: 'hsl(var(--primary))' }">
         <component :is="ICONS[icon]" :size="18" />
       </div>

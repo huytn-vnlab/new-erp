@@ -102,7 +102,8 @@ const reminderFg = (c: string) => c === 'amber' ? 'hsl(35 90% 45%)' : c === 'sky
       <SectionCard :delay="200" class="lg:col-span-2" title="Trình độ tiếng Nhật">
         <template #action><span class="text-[11px] font-mono text-muted-foreground">N=248</span></template>
         <div class="grid grid-cols-3 gap-2.5">
-          <div v-for="(j, i) in jpLevels" :key="j.lv"
+          <div
+v-for="(j, i) in jpLevels" :key="j.lv"
                :class="'rounded-xl border p-3 flex flex-col items-center justify-center gap-0.5 ' + (i < 2 ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/30')">
             <span :class="'text-[20px] font-bold font-heading tabular-nums ' + (i < 2 ? 'text-primary' : 'text-foreground')">{{ j.count }}</span>
             <span class="text-[10.5px] uppercase font-semibold tracking-wider text-muted-foreground">{{ j.lv }}</span>
@@ -119,7 +120,8 @@ const reminderFg = (c: string) => c === 'amber' ? 'hsl(35 90% 45%)' : c === 'sky
       <SectionCard :delay="250" class="lg:col-span-2" title="Công nghệ quan tâm">
         <template #action><span class="text-[11px] text-muted-foreground">Top 14</span></template>
         <div class="flex flex-wrap gap-1.5">
-          <button v-for="(t, i) in tech" :key="t.n"
+          <button
+v-for="(t, i) in tech" :key="t.n"
                   :class="'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-medium border transition-colors hover:border-primary/50 ' + (i === 0 ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border bg-muted/40 text-foreground/85')">
             {{ t.n }}
             <span :class="'text-[10.5px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full ' + (i === 0 ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground')">{{ t.c }}</span>

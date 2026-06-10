@@ -24,7 +24,8 @@ const color = computed(() => COLORS[props.accent] ?? COLORS.primary)
 </script>
 
 <template>
-  <div class="card-surface p-4 rise"
+  <div
+class="card-surface p-4 rise"
        :style="{ animationDelay: delay + 'ms', backgroundImage: `radial-gradient(ellipse 90% 65% at 100% 0%, ${tint}, transparent 70%)` }">
     <div class="flex items-baseline justify-between">
       <p class="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">{{ label }}</p>

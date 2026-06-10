@@ -1,13 +1,17 @@
 <script setup lang="ts">
+import type { Component } from 'vue'
 import { LayoutDashboard, Users, Star, Folder, UserPlus, Timer, SlidersHorizontal } from 'lucide-vue-next'
 import SidebarCollapsible from './SidebarCollapsible.vue'
 
 const props = defineProps<{ activeRoute: string }>()
 const emit = defineEmits<{ navigate: [string] }>()
 
-const ICONS: Record<string, any> = { Dashboard: LayoutDashboard, Users, Star, Folder, UserPlus, Timer, Sliders: SlidersHorizontal }
+const ICONS: Record<string, Component> = { Dashboard: LayoutDashboard, Users, Star, Folder, UserPlus, Timer, Sliders: SlidersHorizontal }
 
-const NAV = {
+type NavChild = { key: string; label: string; to: string }
+type NavItem = { key: string; label: string; icon: string; to?: string; children?: NavChild[] }
+
+const NAV: { overview: NavItem[]; module: NavItem[]; system: NavItem[] } = {
   overview: [{ key: 'dashboard', label: 'Tổng quan', icon: 'Dashboard', to: '/home-admin' }],
   module: [
     { key: 'hrm', label: 'Nhân sự (HRM)', icon: 'Users', children: [
@@ -23,11 +27,11 @@ const NAV = {
     { key: 'request', label: 'Yêu cầu', icon: 'Timer', children: [{ key: 'overtime', label: 'Tăng ca', to: '/request/overtime' }] },
   ],
   system: [{ key: 'setting', label: 'Cài đặt hệ thống', icon: 'Sliders', to: '/settings' }],
-} as const
+}
 
 const logoSrc = '/logo.png'
-const isActive = (to: string) => props.activeRoute === to
-const activeChildKey = (item: any) => item.children?.find((c: any) => isActive(c.to))?.key
+const isActive = (to?: string) => props.activeRoute === to
+const activeChildKey = (item: NavItem) => item.children?.find(c => isActive(c.to))?.key
 </script>
 
 <template>
@@ -39,9 +43,10 @@ const activeChildKey = (item: any) => item.children?.find((c: any) => isActive(c
       <!-- Overview -->
       <div class="px-3 pt-4 pb-1.5 text-[10.5px] font-semibold tracking-[0.14em] uppercase text-muted-foreground/70 font-heading">Tổng quan</div>
       <div class="space-y-0.5">
-        <button v-for="item in NAV.overview" :key="item.key" :data-to="item.to"
+        <button
+v-for="item in NAV.overview" :key="item.key" :data-to="item.to"
                 :class="'nav-item w-full flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium ' + (isActive(item.to) ? 'sidebar-item-active' : '')"
-                @click="emit('navigate', item.to)">
+                @click="emit('navigate', item.to!)">
           <span class="nav-ico"><component :is="ICONS[item.icon]" :size="16" /></span>
           <span class="flex-1 text-left truncate">{{ item.label }}</span>
         </button>
@@ -51,11 +56,13 @@ const activeChildKey = (item: any) => item.children?.find((c: any) => isActive(c
       <div class="px-3 pt-4 pb-1.5 text-[10.5px] font-semibold tracking-[0.14em] uppercase text-muted-foreground/70 font-heading">Module</div>
       <div class="space-y-0.5">
         <template v-for="item in NAV.module" :key="item.key">
-          <SidebarCollapsible v-if="item.children" :item="item" :icon="ICONS[item.icon]"
+          <SidebarCollapsible
+v-if="item.children" :item="item" :icon="ICONS[item.icon]!"
                               :active-child="activeChildKey(item)" @child="emit('navigate', $event)" />
-          <button v-else :data-to="item.to"
+          <button
+v-else :data-to="item.to"
                   :class="'nav-item w-full flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium ' + (isActive(item.to) ? 'sidebar-item-active' : '')"
-                  @click="emit('navigate', item.to)">
+                  @click="emit('navigate', item.to!)">
             <span class="nav-ico"><component :is="ICONS[item.icon]" :size="16" /></span>
             <span class="flex-1 text-left truncate">{{ item.label }}</span>
           </button>
@@ -65,9 +72,10 @@ const activeChildKey = (item: any) => item.children?.find((c: any) => isActive(c
       <!-- System -->
       <div class="px-3 pt-4 pb-1.5 text-[10.5px] font-semibold tracking-[0.14em] uppercase text-muted-foreground/70 font-heading">Hệ thống</div>
       <div class="space-y-0.5">
-        <button v-for="item in NAV.system" :key="item.key" :data-to="item.to"
+        <button
+v-for="item in NAV.system" :key="item.key" :data-to="item.to"
                 :class="'nav-item w-full flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium ' + (isActive(item.to) ? 'sidebar-item-active' : '')"
-                @click="emit('navigate', item.to)">
+                @click="emit('navigate', item.to!)">
           <span class="nav-ico"><component :is="ICONS[item.icon]" :size="16" /></span>
           <span class="flex-1 text-left truncate">{{ item.label }}</span>
         </button>

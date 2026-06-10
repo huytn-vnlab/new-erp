@@ -5,7 +5,8 @@ const total = computed(() => props.segments.reduce((a, s) => a + s.value, 0) || 
 </script>
 <template>
   <div class="flex w-full overflow-hidden rounded-full" :style="{ height: height + 'px' }">
-    <div v-for="(s, i) in segments" :key="i" :title="`${s.label}: ${s.value}`"
+    <div
+v-for="(s, i) in segments" :key="i" :title="`${s.label}: ${s.value}`"
          :style="{ width: (s.value / total) * 100 + '%', background: s.color }" />
   </div>
 </template>

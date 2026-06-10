@@ -10,7 +10,8 @@ const bg = computed(() => props.accent
   <div class="flex items-center gap-3">
     <span class="text-sm text-foreground w-32 shrink-0 truncate font-medium">{{ label }}</span>
     <div class="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-      <div class="h-full rounded-full transition-all duration-700" :data-pct="pct"
+      <div
+class="h-full rounded-full transition-all duration-700" :data-pct="pct"
            :style="{ width: pct + '%', background: bg, opacity: accent ? 1 : 0.55 }" />
     </div>
     <span class="text-sm font-semibold tabular-nums text-foreground w-10 text-right shrink-0">{{ value }}</span>

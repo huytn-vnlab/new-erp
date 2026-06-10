@@ -33,7 +33,8 @@ function toggleTheme() { setTweak('theme', isDark.value ? 'light' : 'dark') }
   <div class="flex min-h-svh">
     <Sidebar :active-route="route.path" @navigate="navigate" />
     <div class="flex-1 min-w-0 flex flex-col">
-      <Topbar :crumbs="crumbs" :is-dark="isDark" :locale="locale" :unread="3"
+      <Topbar
+:crumbs="crumbs" :is-dark="isDark" :locale="locale" :unread="3"
               @toggle-theme="toggleTheme" @update:locale="(l) => setLocale(l as any)" />
       <main class="app-canvas flex-1 overflow-y-auto scrollbar-thin">
         <div :key="route.path" :class="'mx-auto max-w-[1400px] flex flex-col min-h-full ' + (density === 'compact' ? 'p-4' : 'p-6')">

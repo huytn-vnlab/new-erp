@@ -15,9 +15,11 @@ function toggleCheckin() { checkinState.value = checkinState.value === 'none' ? 
 
 <template>
   <div class="relative overflow-hidden card-surface rise">
-    <div class="absolute inset-y-0 right-0 w-1/2 pointer-events-none opacity-90"
+    <div
+class="absolute inset-y-0 right-0 w-1/2 pointer-events-none opacity-90"
          :style="{ background: 'linear-gradient(115deg, transparent 25%, hsl(var(--primary-h) var(--primary-s) 60% / 0.10) 60%, hsl(var(--primary-h) var(--primary-s) 50% / 0.18) 100%)' }" />
-    <div class="absolute -right-12 -bottom-12 w-56 h-56 rounded-full pointer-events-none"
+    <div
+class="absolute -right-12 -bottom-12 w-56 h-56 rounded-full pointer-events-none"
          :style="{ background: 'radial-gradient(circle, hsl(var(--primary-h) var(--primary-s) 60% / 0.22), transparent 65%)' }" />
 
     <div class="relative p-6 flex items-stretch justify-between gap-6 flex-wrap">
@@ -40,7 +42,8 @@ function toggleCheckin() { checkinState.value = checkinState.value === 'none' ? 
           <p v-else-if="checkinState === 'out'" class="text-[13px] text-foreground mt-1">Đã hoàn tất chấm công <span class="text-emerald-600 font-semibold">✓</span></p>
           <p v-else class="text-[13px] text-foreground mt-1">Bạn chưa chấm công vào</p>
         </div>
-        <button v-if="checkinState === 'none'" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg text-[13px] font-semibold text-white shadow-card-hover transition-all hover:scale-[1.02]"
+        <button
+v-if="checkinState === 'none'" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg text-[13px] font-semibold text-white shadow-card-hover transition-all hover:scale-[1.02]"
                 :style="{ background: 'linear-gradient(135deg, hsl(var(--primary-h) var(--primary-s) 60%), hsl(var(--primary-h) var(--primary-s) 42%))' }" @click="toggleCheckin">
           <LogIn :size="15" />Chấm công vào
         </button>

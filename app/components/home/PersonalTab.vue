@@ -36,7 +36,8 @@ const projGradient = (c: string) => c === 'sky' ? 'linear-gradient(135deg,#67d4f
       <SectionCard :delay="50" class="lg:col-span-3" title="Thông tin cá nhân">
         <template #action><button class="text-[12px] text-primary hover:underline inline-flex items-center gap-1">Chỉnh sửa <ArrowRight :size="11" /></button></template>
         <div class="flex items-start gap-5">
-          <span class="w-16 h-16 rounded-xl inline-flex items-center justify-center text-[20px] font-bold text-white font-heading shrink-0"
+          <span
+class="w-16 h-16 rounded-xl inline-flex items-center justify-center text-[20px] font-bold text-white font-heading shrink-0"
                 :style="{ background: 'linear-gradient(135deg, hsl(var(--primary-h) var(--primary-s) 60%), hsl(var(--primary-h) var(--primary-s) 38%))' }">NA</span>
           <div class="min-w-0 flex-1">
             <h4 class="text-[18px] font-bold text-foreground font-heading">Nguyễn Văn An</h4>

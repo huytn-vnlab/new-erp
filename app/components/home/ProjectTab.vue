@@ -69,7 +69,8 @@ const openProject = ref<Project | null>(null)
         <template #action>
           <div class="flex items-center gap-2">
             <button class="text-[12px] text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-muted">Lọc</button>
-            <button class="inline-flex items-center gap-1 text-[12px] font-semibold text-white px-2.5 py-1.5 rounded-md"
+            <button
+class="inline-flex items-center gap-1 text-[12px] font-semibold text-white px-2.5 py-1.5 rounded-md"
                     :style="{ background: 'linear-gradient(135deg, hsl(var(--primary-h) var(--primary-s) 60%), hsl(var(--primary-h) var(--primary-s) 42%))' }"
                     @click="navigateTo('/workflow/project')">
               <Plus :size="12" /> Dự án mới
@@ -135,7 +136,8 @@ const openProject = ref<Project | null>(null)
         <SectionCard :delay="300" title="Top quản lý dự án">
           <ul class="space-y-3">
             <li v-for="(u, i) in topManagers" :key="i" class="flex items-center gap-3">
-              <span class="h-9 w-9 rounded-lg flex items-center justify-center text-[11px] font-semibold text-white"
+              <span
+class="h-9 w-9 rounded-lg flex items-center justify-center text-[11px] font-semibold text-white"
                     :style="{ background: `linear-gradient(135deg, hsl(${(i * 60 + 200) % 360} 70% 65%), hsl(${(i * 60 + 200) % 360} 70% 45%))` }">{{ initials(u.n) }}</span>
               <div class="min-w-0 flex-1">
                 <p class="text-[13px] font-medium text-foreground truncate">{{ u.n }}</p>
@@ -179,7 +181,8 @@ const openProject = ref<Project | null>(null)
         </div>
         <div class="px-5 py-3 border-t border-border/70 flex items-center justify-end gap-2">
           <button class="px-3 py-1.5 text-[13px] rounded-md hover:bg-muted text-foreground/80" @click="openProject = null">Đóng</button>
-          <button class="px-3 py-1.5 text-[13px] rounded-md text-white font-semibold inline-flex items-center gap-1"
+          <button
+class="px-3 py-1.5 text-[13px] rounded-md text-white font-semibold inline-flex items-center gap-1"
                   :style="{ background: 'linear-gradient(135deg, hsl(var(--primary-h) var(--primary-s) 60%), hsl(var(--primary-h) var(--primary-s) 42%))' }">
             Chi tiết dự án <ExternalLink :size="12" />
           </button>
