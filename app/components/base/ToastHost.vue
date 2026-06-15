@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Check, AlertCircle, Info } from 'lucide-vue-next'
+import { useToast } from '~/composables/useToast'
 const { toasts } = useToast()
 const ICON = { success: Check, error: AlertCircle, info: Info }
 const BG = { success: 'hsl(160 60% 40%)', error: 'hsl(0 70% 50%)', info: 'hsl(203 89% 45%)' }

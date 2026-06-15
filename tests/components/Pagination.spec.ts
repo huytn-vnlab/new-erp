@@ -16,4 +16,12 @@ describe('Pagination', () => {
     const prev = w.findAll('button').find(b => b.text().includes('Trước'))!
     expect(prev.attributes('disabled')).toBeDefined()
   })
+  it('với nhiều trang, cửa sổ căn quanh trang hiện tại (có nút trang hiện tại)', () => {
+    // 200 mục / 10 = 20 trang, đang ở trang 7 → cửa sổ [5,6,7,8,9]
+    const w = mount(Pagination, { props: { page: 7, total: 200, perPage: 10 } })
+    const labels = w.findAll('button').map(b => b.text())
+    expect(labels).toContain('7') // trang hiện tại luôn có nút
+    expect(labels).not.toContain('1') // trang 1 nằm ngoài cửa sổ
+    expect(w.text()).toContain('…') // có dấu ellipsis
+  })
 })

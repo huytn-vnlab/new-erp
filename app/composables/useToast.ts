@@ -15,6 +15,6 @@ export function useToast() {
   function dismiss(id: number) {
     toasts.value = toasts.value.filter(t => t.id !== id)
   }
-  function clear() { toasts.value = [] }
+  function clear() { toasts.value = []; seq = 0 }
   return { toasts, show, dismiss, clear }
 }
