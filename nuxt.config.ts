@@ -15,6 +15,12 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  runtimeConfig: {
+    public: {
+      apiBase: process.env.NUXT_ENV_AXIOS_BASE_URL || 'http://localhost:8080',
+    },
+  },
+
   typescript: { strict: true, typeCheck: false },
 
   fonts: {
