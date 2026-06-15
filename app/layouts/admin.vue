@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import Sidebar from '~/components/layout/Sidebar.vue'
 import Topbar from '~/components/layout/Topbar.vue'
 import TweaksPanel from '~/components/layout/TweaksPanel.vue'
+import ToastHost from '~/components/base/ToastHost.vue'
 
 const route = useRoute()
 const { tweaks, setTweak } = useTweaks()
@@ -49,5 +50,6 @@ function toggleTheme() { setTweak('theme', isDark.value ? 'light' : 'dark') }
       </main>
     </div>
     <TweaksPanel />
+    <ToastHost />
   </div>
 </template>
