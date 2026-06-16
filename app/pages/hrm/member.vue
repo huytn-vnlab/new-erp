@@ -47,7 +47,7 @@ const resetPage = () => { page.value = 1 }
 
 const stats = computed(() => [
   { label: 'Tổng nhân viên', value: MEMBERS.length, sublabel: '4 chi nhánh', trend: { dir: 'up' as const, value: '+2 tháng này' }, accent: 'primary' as const },
-  { label: 'Đang làm việc', value: MEMBERS.filter(m => m.status === 'active').length, sublabel: '88% tổng số', accent: 'green' as const },
+  { label: 'Đang làm việc', value: MEMBERS.filter(m => m.status === 'active').length, sublabel: `${Math.round(MEMBERS.filter(m => m.status === 'active').length / MEMBERS.length * 100)}% tổng số`, accent: 'green' as const },
   { label: 'Đang onboard', value: MEMBERS.filter(m => m.status === 'onboarding').length, sublabel: '2 sẽ chính thức tháng 6', accent: 'amber' as const },
   { label: 'Lời mời chờ duyệt', value: pendingCount.value, sublabel: 'Cần phản hồi', accent: 'violet' as const },
 ])
@@ -162,7 +162,7 @@ function onInvited(inv: { email: string; sent: string; by: string; status: 'pend
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(inv, i) in invitations" :key="i" class="border-b border-border/60 last:border-0 hover:bg-muted/30 transition-colors">
+          <tr v-for="inv in invitations" :key="inv.email" class="border-b border-border/60 last:border-0 hover:bg-muted/30 transition-colors">
             <td class="py-3 px-5 font-mono text-[12.5px]">{{ inv.email }}</td>
             <td class="py-3 px-3 text-foreground/85">{{ inv.role }}</td>
             <td class="py-3 px-3 text-foreground/85">{{ inv.branch }}</td>

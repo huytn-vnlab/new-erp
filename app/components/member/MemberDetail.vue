@@ -3,11 +3,10 @@ import { Mail, Phone, Building2, Calendar, FileText, ExternalLink, X, ChevronRig
 import Drawer from '~/components/base/Drawer.vue'
 import Avatar from '~/components/base/Avatar.vue'
 import Btn from '~/components/base/Button.vue'
-import type { Member } from '~/mocks/members'
+import { RANK_COLOR, type Member } from '~/mocks/members'
 
-const props = defineProps<{ open: boolean; member: Member | null }>() // eslint-disable-line @typescript-eslint/no-unused-vars
+defineProps<{ open: boolean; member: Member | null }>()
 const emit = defineEmits<{ 'update:open': [boolean] }>()
-const RANK_BG: Record<string, string> = { S: '#0ea5e9', A: '#22c55e' }
 const projects = ['Cổng thanh toán XYZ', 'Hệ thống CRM nội bộ', 'Module báo cáo BI']
 const skills = ['Vue.js', 'TypeScript', 'Node.js', 'Tailwind', 'Figma', 'AWS']
 </script>
@@ -38,7 +37,7 @@ const skills = ['Vue.js', 'TypeScript', 'Node.js', 'Tailwind', 'Figma', 'AWS']
         <div>
           <p class="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">Đánh giá</p>
           <div class="flex items-center gap-3">
-            <span class="inline-flex items-center justify-center w-12 h-12 rounded-xl text-white text-[20px] font-bold font-heading" :style="{ background: RANK_BG[member.rank] ?? '#a3a3a3' }">{{ member.rank }}</span>
+            <span class="inline-flex items-center justify-center w-12 h-12 rounded-xl text-white text-[20px] font-bold font-heading" :style="{ background: RANK_COLOR[member.rank] ?? '#a3a3a3' }">{{ member.rank }}</span>
             <div class="flex-1">
               <p class="text-[13px] font-semibold">Kỳ hiện tại Q2/2026</p>
               <p class="text-[11.5px] text-muted-foreground">Tăng 1 hạng so với Q1</p>
