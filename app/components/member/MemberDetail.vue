@@ -5,7 +5,7 @@ import Avatar from '~/components/base/Avatar.vue'
 import Btn from '~/components/base/Button.vue'
 import type { Member } from '~/mocks/members'
 
-const props = defineProps<{ open: boolean; member: Member | null }>()
+const props = defineProps<{ open: boolean; member: Member | null }>() // eslint-disable-line @typescript-eslint/no-unused-vars
 const emit = defineEmits<{ 'update:open': [boolean] }>()
 const RANK_BG: Record<string, string> = { S: '#0ea5e9', A: '#22c55e' }
 const projects = ['Cổng thanh toán XYZ', 'Hệ thống CRM nội bộ', 'Module báo cáo BI']

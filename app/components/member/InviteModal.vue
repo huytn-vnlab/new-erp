@@ -6,7 +6,7 @@ import Modal from '~/components/base/Modal.vue'
 import Btn from '~/components/base/Button.vue'
 import { isValidEmail } from '~/utils/email'
 
-const props = defineProps<{ open: boolean }>()
+defineProps<{ open: boolean }>()
 const emit = defineEmits<{ 'update:open': [boolean]; sent: [{ email: string; sent: string; by: string; status: 'pending' }] }>()
 
 const emails = ref<string[]>([])
