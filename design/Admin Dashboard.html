@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tổng quan — Micro ERP</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!--
+  Font stack:
+  · Plus Jakarta Sans  — body & heading, excellent Vietnamese diacritics, weights 400–800
+  · Noto Sans JP        — CJK fallback (hiragana / katakana / kanji)
+  · Lora                — display serif (italic pull-quotes, eval headings); VN-compatible
+  · Noto Serif JP       — CJK fallback for serif contexts
+  · JetBrains Mono      — monospace (code, numbers)
+-->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Noto+Sans+JP:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Noto+Serif+JP:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans:    ['"Plus Jakarta Sans"', '"Noto Sans JP"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          heading: ['"Plus Jakarta Sans"', '"Noto Sans JP"', 'ui-sans-serif', 'sans-serif'],
+          display: ['Lora', '"Noto Serif JP"', 'Georgia', 'ui-serif', 'serif'],
+          mono:    ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        },
+        colors: {
+          background: 'hsl(var(--background) / <alpha-value>)',
+          foreground: 'hsl(var(--foreground) / <alpha-value>)',
+          card: 'hsl(var(--card) / <alpha-value>)',
+          'card-foreground': 'hsl(var(--card-foreground) / <alpha-value>)',
+          popover: 'hsl(var(--popover) / <alpha-value>)',
+          'popover-foreground': 'hsl(var(--popover-foreground) / <alpha-value>)',
+          primary: {
+            DEFAULT: 'hsl(var(--primary) / <alpha-value>)',
+            foreground: 'hsl(var(--primary-foreground) / <alpha-value>)',
+            50: 'hsl(var(--primary-h) var(--primary-s) 96%)',
+            100: 'hsl(var(--primary-h) var(--primary-s) 90%)',
+            200: 'hsl(var(--primary-h) var(--primary-s) 82%)',
+            500: 'hsl(var(--primary-h) var(--primary-s) 57%)',
+            600: 'hsl(var(--primary-h) var(--primary-s) 48%)',
+            700: 'hsl(var(--primary-h) var(--primary-s) 40%)',
+          },
+          muted: {
+            DEFAULT: 'hsl(var(--muted) / <alpha-value>)',
+            foreground: 'hsl(var(--muted-foreground) / <alpha-value>)',
+          },
+          border: 'hsl(var(--border) / <alpha-value>)',
+          ring: 'hsl(var(--ring) / <alpha-value>)',
+          sidebar: 'hsl(var(--sidebar) / <alpha-value>)',
+        },
+        boxShadow: {
+          'card': '0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 1px 0 rgb(0 0 0 / 0.02)',
+          'card-hover': '0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 4px -1px rgb(0 0 0 / 0.04)',
+          'popover': '0 12px 32px -8px rgb(0 0 0 / 0.16), 0 4px 8px -2px rgb(0 0 0 / 0.06)',
+        },
+      },
+    },
+  };
+</script>
+
+<style>
+  :root {
+    /* Brand HSL parts — primary is composed from these so tweaks can swap hue/sat */
+    --primary-h: 203;
+    --primary-s: 89%;
+
+    --background:             0 0% 100%;
+    --foreground:             226 45% 15%;
+    --card:                   0 0% 100%;
+    --card-foreground:        226 45% 15%;
+    --popover:                0 0% 100%;
+    --popover-foreground:     226 45% 15%;
+    --sidebar:                203 50% 97%;
+
+    --primary:                var(--primary-h) var(--primary-s) 57%;
+    --primary-foreground:     0 0% 100%;
+    --muted:                  220 18% 96%;
+    --muted-foreground:       215 16% 47%;
+    --border:                 220 14% 91%;
+    --input:                  220 14% 91%;
+    --ring:                   var(--primary-h) var(--primary-s) 57%;
+  }
+
+  .dark {
+    --background:             222 47% 7%;
+    --foreground:             213 31% 91%;
+    --card:                   222 40% 10%;
+    --card-foreground:        213 31% 91%;
+    --popover:                222 40% 12%;
+    --popover-foreground:     213 31% 91%;
+    --sidebar:                222 47% 6%;
+
+    --primary:                var(--primary-h) var(--primary-s) 63%;
+    --primary-foreground:     222 47% 11%;
+    --muted:                  222 30% 14%;
+    --muted-foreground:       215 20% 65%;
+    --border:                 222 25% 17%;
+    --input:                  222 25% 17%;
+    --ring:                   var(--primary-h) var(--primary-s) 57%;
+  }
+
+  /*
+    Base sans: Plus Jakarta Sans covers Latin + Vietnamese diacritics.
+    Noto Sans JP kicks in automatically for any CJK codepoint (hiragana,
+    katakana, kanji) — no manual switching needed.
+  */
+  html {
+    font-family: 'Plus Jakarta Sans', 'Noto Sans JP', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+  }
+  body { background-color: hsl(var(--background)); color: hsl(var(--foreground)); }
+
+  /*
+    Main canvas — subtle accent mesh so the page isn't a flat white slab.
+    Two faint radial tints in opposite corners + a barely-there dot grid.
+    Kept very low-opacity so it reads as texture, not decoration.
+  */
+  .app-canvas {
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(900px 500px at 100% 0%, hsl(var(--primary-h) var(--primary-s) 60% / 0.13), transparent 70%),
+      radial-gradient(700px 500px at 0% 100%, hsl(var(--primary-h) 50% 55% / 0.09), transparent 70%),
+      radial-gradient(hsl(var(--primary-h) var(--primary-s) 60% / 0.055) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 22px 22px;
+    background-attachment: local, local, local;
+  }
+  .dark .app-canvas {
+    background-image:
+      radial-gradient(900px 500px at 100% 0%, hsl(var(--primary-h) var(--primary-s) 60% / 0.12), transparent 70%),
+      radial-gradient(700px 500px at 0% 100%, hsl(var(--primary-h) 55% 45% / 0.09), transparent 70%),
+      radial-gradient(hsl(var(--foreground) / 0.03) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 22px 22px;
+  }
+
+  /*
+    Headings: same typeface, heavier weight.
+    Plus Jakarta Sans 700–800 looks polished for both Latin and JP.
+    letter-spacing tighter to look crisper at large sizes.
+  */
+  h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  /*
+    Display / pull-quote serif:
+    Lora is beautiful for italic accents and has full Vietnamese glyph coverage.
+    Noto Serif JP handles any Japanese text in serif contexts.
+  */
+  .font-display {
+    font-family: 'Lora', 'Noto Serif JP', Georgia, serif;
+    font-optical-sizing: auto;
+    letter-spacing: -0.01em;
+  }
+
+  /* Section card titles — regular weight, slightly tighter tracking */
+  .section-title {
+    font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: hsl(var(--foreground));
+  }
+
+  /* Highlighted table header — soft primary tint + primary-colored text */
+  .thead-primary {
+    background: hsl(var(--primary-h) var(--primary-s) 57% / 0.10);
+    color: hsl(var(--primary-h) var(--primary-s) 38%);
+  }
+  .thead-primary th { color: hsl(var(--primary-h) var(--primary-s) 38%) !important; }
+  .dark .thead-primary {
+    background: hsl(var(--primary-h) var(--primary-s) 57% / 0.14);
+  }
+  .dark .thead-primary th { color: hsl(var(--primary-h) var(--primary-s) 72%) !important; }
+
+  /* Scrollbar */
+  .scrollbar-thin { scrollbar-width: thin; scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent; }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(var(--muted-foreground) / 0.3); border-radius: 9999px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+
+  /* Subtle background pattern for the page — handled by .app-canvas on <main> */
+
+  /* Sidebar gradient — accent at top/bottom, near-white in the middle */
+  .sidebar-bg {
+    background:
+      radial-gradient(130% 35% at 50% 0%, hsl(var(--primary-h) 65% 82%) 0%, transparent 100%),
+      radial-gradient(130% 35% at 50% 100%, hsl(var(--primary-h) 60% 84%) 0%, transparent 100%),
+      hsl(var(--primary-h) 30% 97%);
+  }
+  .dark .sidebar-bg {
+    background:
+      radial-gradient(120% 55% at 50% 0%, hsl(var(--primary-h) 45% 14%) 0%, transparent 65%),
+      radial-gradient(90% 40% at 50% 100%, hsl(var(--primary-h) 50% 12%) 0%, transparent 70%),
+      linear-gradient(180deg, hsl(222 47% 8%) 0%, hsl(222 50% 6%) 60%, hsl(222 52% 5%) 100%);
+  }
+
+  /* Active sidebar item */
+  .sidebar-item-active {
+    background: linear-gradient(135deg, hsl(var(--primary-h) var(--primary-s) 62%), hsl(var(--primary-h) var(--primary-s) 46%));
+    color: #fff;
+    box-shadow:
+      0 6px 16px -6px hsl(var(--primary-h) var(--primary-s) 50% / 0.55),
+      inset 0 1px 0 0 hsl(var(--primary-h) 100% 80% / 0.45);
+  }
+
+  /* Card chrome */
+  .card-surface {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 14px;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+  }
+
+  /* Subtle "pop" on cards */
+  .card-surface.interactive { transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+  .card-surface.interactive:hover {
+    border-color: hsl(var(--primary-h) var(--primary-s) 57% / 0.45);
+    box-shadow: 0 6px 18px -8px hsl(var(--primary-h) var(--primary-s) 50% / 0.22);
+  }
+
+  /* Staggered entry */
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes selectIn {
+    from { opacity: 0; transform: translateY(-4px) scaleY(0.96); }
+    to   { opacity: 1; transform: translateY(0) scaleY(1); }
+  }
+  .rise { animation: rise .5s cubic-bezier(.2,.7,.2,1) both; }
+
+  /* Underline tab indicator */
+  .tab-trigger {
+    position: relative;
+    padding: 12px 0;
+    color: hsl(var(--muted-foreground));
+    font-weight: 600;
+    font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    transition: color .15s ease;
+  }
+  .tab-trigger:hover { color: hsl(var(--foreground)); }
+  .tab-trigger[data-active="true"] { color: hsl(var(--primary)); }
+  .tab-trigger[data-active="true"]::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+    background: linear-gradient(90deg, hsl(var(--primary-h) var(--primary-s) 70%), hsl(var(--primary-h) var(--primary-s) 47%));
+    border-radius: 2px;
+  }
+
+  /* Dotted grid for "no data" placeholder */
+  .ph-grid { background-image: repeating-linear-gradient(45deg, hsl(var(--border)) 0 1px, transparent 1px 12px); }
+
+  /* Pulse for live dot */
+  @keyframes pulseDot {
+    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary-h) var(--primary-s) 57% / 0.55); }
+    50% { box-shadow: 0 0 0 6px hsl(var(--primary-h) var(--primary-s) 57% / 0); }
+  }
+  .live-dot { animation: pulseDot 1.8s ease-out infinite; }
+
+  /* Custom checkbox — primary fill + white checkmark */
+  input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid hsl(var(--border));
+    border-radius: 3px;
+    background: hsl(var(--card));
+    cursor: pointer;
+    position: relative;
+    transition: background 0.12s, border-color 0.12s;
+    flex-shrink: 0;
+  }
+  input[type="checkbox"]:checked {
+    background: hsl(var(--primary));
+    border-color: hsl(var(--primary));
+  }
+  input[type="checkbox"]:indeterminate {
+    background: hsl(var(--primary));
+    border-color: hsl(var(--primary));
+  }
+  input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 0.5px;
+    width: 5px;
+    height: 9px;
+    border: 2px solid white;
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg);
+  }
+  input[type="checkbox"]:indeterminate::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 5px;
+    width: 8px;
+    height: 2px;
+    background: white;
+    border-radius: 1px;
+  }
+
+  /*
+    Global: remove the browser's default focus outline / ring / box-shadow
+    on all form controls. The design signals focus via border-color instead,
+    so the default square outline is redundant and looks broken inside the
+    rounded pill/field containers.
+  */
+  input, textarea, select, button {
+    -webkit-tap-highlight-color: transparent;
+  }
+  input:focus, textarea:focus, select:focus,
+  input:focus-visible, textarea:focus-visible, select:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  /* Kill the inner focus ring some engines paint on <select> */
+  select:-moz-focusring { color: transparent; text-shadow: 0 0 0 currentColor; }
+
+  /* Sidebar item base hover */
+  .nav-item {
+    position: relative;
+    color: hsl(var(--foreground) / 0.82);
+    transition: background-color .16s ease, transform .16s ease;
+  }
+  .nav-item.sidebar-item-active { color: #fff; }
+  .nav-item.is-sub { color: hsl(var(--foreground) / 0.72); }
+  /* Active sub-item must override is-sub color in both modes */
+  .nav-item.is-sub.sidebar-item-active { color: #fff; }
+  .nav-item:hover:not(.sidebar-item-active) {
+    background-color: hsl(var(--primary-h) 70% 90%);
+    color: hsl(var(--primary-h) 80% 30%);
+    transform: translateX(2px);
+  }
+  .dark .nav-item { color: hsl(var(--foreground) / 0.85); }
+  .dark .nav-item:hover:not(.sidebar-item-active) {
+    background-color: hsl(var(--primary-h) 40% 16%);
+    color: hsl(var(--primary-h) var(--primary-s) 82%);
+  }
+
+  /* Icon chip inside nav items */
+  .nav-ico {
+    display: flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+    transition: background-color .16s ease;
+  }
+  .sidebar-item-active .nav-ico { background: rgba(255,255,255,0.2); }
+  .nav-item:hover:not(.sidebar-item-active) .nav-ico { background: hsl(var(--primary-h) 70% 84%); }
+  .dark .nav-item:hover:not(.sidebar-item-active) .nav-ico { background: hsl(var(--primary-h) 40% 24%); }
+
+  /* Sub-item leading dot */
+  .nav-dot {
+    width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+    background: hsl(var(--foreground) / 0.3);
+    transition: background-color .16s ease, transform .16s ease;
+  }
+  .nav-item.is-sub:hover:not(.sidebar-item-active) .nav-dot { background: hsl(var(--primary)); }
+  .sidebar-item-active .nav-dot { background: #fff; transform: scale(1.3); }
+
+  /* Selection */
+  ::selection { background: hsl(var(--primary-h) var(--primary-s) 57% / 0.25); }
+</style>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="app"></div>
+
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="charts.jsx"></script>
+<script type="text/babel" src="page-shell.jsx"></script>
+<script type="text/babel" src="sidebar.jsx"></script>
+<script type="text/babel" src="topbar.jsx"></script>
+<script type="text/babel" src="banner.jsx"></script>
+<script type="text/babel" src="tabs-content.jsx"></script>
+<script type="text/babel" src="page-member.jsx"></script>
+<script type="text/babel" src="page-profile.jsx"></script>
+<script type="text/babel" src="page-leave.jsx"></script>
+<script type="text/babel" src="page-asset.jsx"></script>
+<script type="text/babel" src="page-contract.jsx"></script>
+<script type="text/babel" src="page-timekeeping.jsx"></script>
+<script type="text/babel" src="page-evaluation.jsx"></script>
+<script type="text/babel" src="page-project.jsx"></script>
+<script type="text/babel" src="page-recruitment.jsx"></script>
+<script type="text/babel" src="page-overtime.jsx"></script>
+<script type="text/babel" src="page-settings.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="dashboard.jsx"></script>
+
+</body>
+</html>
