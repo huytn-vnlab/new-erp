@@ -15,7 +15,9 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:screenshots": "playwright test e2e/visual.spec.ts e2e/visual-design.spec.ts",
+    "design:server": "node scripts/design-server.mjs"
   },
   "dependencies": {
     "@nuxtjs/i18n": "^9.5.6",
