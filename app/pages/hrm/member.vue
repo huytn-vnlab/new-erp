@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import PageHeader from '~/components/layout/PageHeader.vue'
 import Btn from '~/components/base/Button.vue'
 import MiniStat from '~/components/base/MiniStat.vue'
@@ -14,9 +14,11 @@ import InviteModal from '~/components/member/InviteModal.vue'
 import MemberDetail from '~/components/member/MemberDetail.vue'
 import { Building2, FileText, UserPlus, Users } from 'lucide-vue-next'
 import { MEMBERS, MEMBER_STATUS_META, BRANCHES, INVITATIONS, RANK_COLOR, type Member, type Invitation } from '~/mocks/members'
+import { useMemberStore } from '~/stores/member'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'auth' })
 
+const store = useMemberStore()
 const search = ref('')
 const branch = ref('all')
 const role = ref('all')
@@ -30,11 +32,20 @@ const inviteOpen = ref(false)
 const invitations = ref<Invitation[]>([...INVITATIONS])
 const { show } = useToast()
 
-const roleOptions = computed(() => [{ value: 'all', label: 'Tất cả chức vụ' }, ...Array.from(new Set(MEMBERS.map(m => m.role))).map(r => ({ value: r, label: r }))])
-const branchOptions = [{ value: 'all', label: 'Tất cả chi nhánh' }, ...BRANCHES.map(b => ({ value: b, label: b }))]
+// Use API data when available, fall back to mock
+const allMembers = computed(() => store.members.length ? store.members : MEMBERS)
+const allBranches = computed(() => store.branches.length ? store.branches.map(b => b.name) : BRANCHES)
+
+onMounted(() => {
+  store.fetchMembers()
+  store.fetchBranches()
+})
+
+const roleOptions = computed(() => [{ value: 'all', label: 'Tất cả chức vụ' }, ...Array.from(new Set(allMembers.value.map(m => m.role))).map(r => ({ value: r, label: r }))])
+const branchOptions = computed(() => [{ value: 'all', label: 'Tất cả chi nhánh' }, ...allBranches.value.map(b => ({ value: b, label: b }))])
 const statusOptions = [{ value: 'all', label: 'Tất cả trạng thái' }, ...Object.entries(MEMBER_STATUS_META).map(([k, v]) => ({ value: k, label: v.label }))]
 
-const filtered = computed(() => MEMBERS.filter((m) => {
+const filtered = computed(() => allMembers.value.filter((m) => {
   if (search.value && !m.name.toLowerCase().includes(search.value.toLowerCase()) && !m.email.toLowerCase().includes(search.value.toLowerCase())) return false
   if (branch.value !== 'all' && m.branch !== branch.value) return false
   if (role.value !== 'all' && m.role !== role.value) return false
@@ -46,9 +57,9 @@ const pendingCount = computed(() => invitations.value.filter(i => i.status === '
 const resetPage = () => { page.value = 1 }
 
 const stats = computed(() => [
-  { label: 'Tổng nhân viên', value: MEMBERS.length, sublabel: '4 chi nhánh', trend: { dir: 'up' as const, value: '+2 tháng này' }, accent: 'primary' as const },
-  { label: 'Đang làm việc', value: MEMBERS.filter(m => m.status === 'active').length, sublabel: `${Math.round(MEMBERS.filter(m => m.status === 'active').length / MEMBERS.length * 100)}% tổng số`, accent: 'green' as const },
-  { label: 'Đang onboard', value: MEMBERS.filter(m => m.status === 'onboarding').length, sublabel: '2 sẽ chính thức tháng 6', accent: 'amber' as const },
+  { label: 'Tổng nhân viên', value: allMembers.value.length, sublabel: `${allBranches.value.length} chi nhánh`, trend: { dir: 'up' as const, value: '+2 tháng này' }, accent: 'primary' as const },
+  { label: 'Đang làm việc', value: allMembers.value.filter(m => m.status === 'active').length, sublabel: `${Math.round(allMembers.value.filter(m => m.status === 'active').length / (allMembers.value.length || 1) * 100)}% tổng số`, accent: 'green' as const },
+  { label: 'Đang onboard', value: allMembers.value.filter(m => m.status === 'onboarding').length, sublabel: '2 sẽ chính thức tháng 6', accent: 'amber' as const },
   { label: 'Lời mời chờ duyệt', value: pendingCount.value, sublabel: 'Cần phản hồi', accent: 'violet' as const },
 ])
 const tabItems = computed(() => [
@@ -85,7 +96,7 @@ function onInvited(inv: { email: string; sent: string; by: string; status: 'pend
         <Select v-model="role" :options="roleOptions" :width="170" @update:model-value="resetPage" />
         <Select v-model="status" :options="statusOptions" :width="170" @update:model-value="resetPage" />
         <div class="flex-1" />
-        <span class="text-[12px] text-muted-foreground">{{ filtered.length }} / {{ MEMBERS.length }} kết quả</span>
+        <span class="text-[12px] text-muted-foreground">{{ filtered.length }} / {{ allMembers.length }} kết quả</span>
       </FilterBar>
 
       <div class="card-surface overflow-hidden rise" style="animation-delay: 180ms">

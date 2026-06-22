@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Plus, Search, LayoutGrid, List, X, Send } from 'lucide-vue-next'
 import PageHeader from '~/components/layout/PageHeader.vue'
 import Btn from '~/components/base/Button.vue'
@@ -12,8 +12,13 @@ import {
   ASSETS, ASSET_REQUESTS, CATEGORY_META, ASSET_STATUS_META, formatVND,
   type Asset, type AssetStatus, type AssetCategory,
 } from '~/mocks/asset'
+import type { AssetRow } from '~/types'
+import { useAssetStore } from '~/stores/asset'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'auth' })
+
+const assetStore = useAssetStore()
+onMounted(() => { assetStore.fetchAssets(); assetStore.fetchAssetTypes() })
 
 const tab = ref<'all' | 'mine' | 'requests'>('all')
 const viewMode = ref<'grid' | 'list'>('grid')
@@ -27,6 +32,39 @@ const { show } = useToast()
 
 const requestForm = ref({ asset: '', return: '', reason: '' })
 const requestErrors = ref<Record<string, boolean>>({})
+
+const STATUS_MAP: Record<number, AssetStatus> = { 1: 'available', 2: 'in_use', 3: 'maintenance', 4: 'broken' }
+
+function inferCategory(typeName?: string | null): AssetCategory {
+  const n = (typeName ?? '').toLowerCase()
+  if (n.includes('laptop') || n.includes('macbook')) return 'laptop'
+  if (n.includes('màn hình') || n.includes('monitor')) return 'monitor'
+  if (n.includes('bàn phím') || n.includes('keyboard')) return 'keyboard'
+  if (n.includes('chuột') || n.includes('mouse')) return 'mouse'
+  if (n.includes('tai nghe') || n.includes('headphone')) return 'headphone'
+  if (n.includes('điện thoại') || n.includes('phone')) return 'phone'
+  if (n.includes('tablet') || n.includes('ipad')) return 'tablet'
+  return 'other'
+}
+
+function mapAssetRow(r: AssetRow): Asset {
+  return {
+    id: r.asset_code,
+    name: r.asset_name,
+    category: inferCategory(r.asset_type_name),
+    spec: r.description || '',
+    serial: '',
+    status: STATUS_MAP[r.status ?? 1] ?? 'available',
+    user: r.user_name ?? null,
+    branch: r.branch_name ?? '',
+    date: r.date_of_purchase || '',
+    value: r.purchase_price || 0,
+  }
+}
+
+const allAssets = computed<Asset[]>(() =>
+  assetStore.assets.length > 0 ? assetStore.assets.map(mapAssetRow) : ASSETS
+)
 
 const statusOpts = [
   { value: 'all', label: 'Tất cả trạng thái' },
@@ -49,11 +87,11 @@ const categoryOpts = [
 ]
 
 const availableAssetOpts = computed(() =>
-  ASSETS.filter(a => a.status === 'available').map(a => ({ value: a.name, label: a.name }))
+  allAssets.value.filter(a => a.status === 'available').map(a => ({ value: a.name, label: a.name }))
 )
 
 const filtered = computed(() =>
-  ASSETS.filter(a => {
+  allAssets.value.filter(a => {
     const q = search.value.toLowerCase()
     if (q && !a.name.toLowerCase().includes(q) && !a.id.toLowerCase().includes(q) && !(a.user ?? '').toLowerCase().includes(q)) return false
     if (filterStatus.value !== 'all' && a.status !== filterStatus.value) return false
@@ -63,10 +101,10 @@ const filtered = computed(() =>
 )
 
 const stats = computed(() => ({
-  total: ASSETS.length,
-  inUse: ASSETS.filter(a => a.status === 'in_use').length,
-  available: ASSETS.filter(a => a.status === 'available').length,
-  totalValue: ASSETS.reduce((s, a) => s + a.value, 0),
+  total: allAssets.value.length,
+  inUse: allAssets.value.filter(a => a.status === 'in_use').length,
+  available: allAssets.value.filter(a => a.status === 'available').length,
+  totalValue: allAssets.value.reduce((s, a) => s + a.value, 0),
 }))
 
 const requestStatusMeta = { pending: { label: 'Chờ duyệt', variant: 'amber' }, approved: { label: 'Đã duyệt', variant: 'green' }, completed: { label: 'Hoàn thành', variant: 'primary' } } as const

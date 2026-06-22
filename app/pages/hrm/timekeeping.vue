@@ -10,18 +10,86 @@ import SectionCard from '~/components/home/SectionCard.vue'
 import TimekeepingCalendar from '~/components/timekeeping/TimekeepingCalendar.vue'
 import {
   TIMEKEEPING_HISTORY, MONTH_OPTIONS, TK_STATUS_META,
-  type TKStatus,
+  type TKStatus, type TimekeepingDay,
 } from '~/mocks/timekeeping'
+import type { TimekeepingRow } from '~/types'
+import { useTimekeepingStore } from '~/stores/timekeeping'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'auth' })
+
+const tkStore = useTimekeepingStore()
+onMounted(() => {
+  tkStore.fetchToday()
+  tkStore.fetchMine({ month: selectedMonth.value })
+  tkStore.fetchAll({ month: selectedMonth.value })
+})
 
 const selectedMonth = ref('2026-05')
 const activeTab = ref<'mine' | 'team'>('mine')
 
-// 3-state: none → in → out
-const checkinState = ref<'none' | 'in' | 'out'>('in')
-function doCheck() {
-  checkinState.value = checkinState.value === 'none' ? 'in' : checkinState.value === 'in' ? 'out' : 'none'
+// Derive check-in state from store (same pattern as Banner.vue)
+const checkinState = computed<'none' | 'in' | 'out'>(() => {
+  if (!tkStore.today) return 'none'
+  if (tkStore.today.check_out_time) return 'out'
+  if (tkStore.today.check_in_time) return 'in'
+  return 'none'
+})
+
+// Extract "hh:mm AM" from "yyyy/MM/dd hh:mm AM" format
+function extractTime(timeStr: string | undefined | null): string | null {
+  if (!timeStr) return null
+  const parts = timeStr.split(' ')
+  return parts.length >= 3 ? parts.slice(1).join(' ') : null
+}
+
+const checkinTimeDisplay = computed(() => extractTime(tkStore.today?.check_in_time) ?? '—')
+const checkoutTimeDisplay = computed(() => extractTime(tkStore.today?.check_out_time) ?? '—')
+
+const isCheckinOnTime = computed(() => {
+  const t = tkStore.today?.check_in_time
+  if (!t) return false
+  const timePart = t.split(' ')[1] // "hh:mm"
+  if (!timePart) return false
+  const [h = '8', m = '30'] = timePart.split(':')
+  const totalMin = parseInt(h) * 60 + parseInt(m)
+  return totalMin <= 8 * 60 + 30
+})
+
+async function doCheck() {
+  if (checkinState.value === 'none') await tkStore.checkIn()
+  else if (checkinState.value === 'in') await tkStore.checkOut()
+  await tkStore.fetchToday()
+}
+
+// Map API TimekeepingRow to mock TimekeepingDay shape
+function mapTkRow(r: TimekeepingRow): TimekeepingDay {
+  const d = new Date(r.date)
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dateVN = `${dd}/${mm}/${d.getFullYear()}`
+  const isWeekend = d.getDay() === 0 || d.getDay() === 6
+  let status: TKStatus = 'empty'
+  if (isWeekend) {
+    status = 'weekend'
+  } else if (r.check_in) {
+    const [h = '8', m = '0'] = r.check_in.split(':')
+    const lateMin = Math.max(0, parseInt(h) * 60 + parseInt(m) - (8 * 60 + 30))
+    if (lateMin > 5) status = 'late'
+    else if ((r.total_time ?? 0) < 7.5) status = 'short'
+    else status = 'full'
+  }
+  return {
+    date: dateVN,
+    weekday: d.getDay(),
+    status,
+    in: r.check_in ? r.check_in.slice(0, 5) : undefined,
+    out: r.check_out ? r.check_out.slice(0, 5) : undefined,
+    hours: r.total_time || undefined,
+    late: status === 'late' && r.check_in
+      ? Math.max(0, parseInt(r.check_in.split(':')[0]!) * 60 + parseInt(r.check_in.split(':')[1]!) - (8 * 60 + 30))
+      : 0,
+    note: r.note || undefined,
+  }
 }
 
 // Live clock
@@ -43,8 +111,14 @@ const parsedMonth = computed(() => {
   return { year: y, month: m - 1 }
 })
 
-const historyForMonth = computed(() => {
+const historyForMonth = computed((): TimekeepingDay[] => {
   const [y, m] = selectedMonth.value.split('-')
+  if (tkStore.rows.length > 0) {
+    const prefix = `${y}-${m}`
+    return tkStore.rows
+      .filter(r => r.date?.startsWith(prefix))
+      .map(mapTkRow)
+  }
   return TIMEKEEPING_HISTORY.filter(d => d.date.slice(3, 10) === `${m}/${y}`)
 })
 
@@ -60,19 +134,39 @@ const stats = computed(() => {
   }
 })
 
-// Week strip: Mon 18 – Sun 24 May 2026 (matches mock "today = 22/05")
+// Week strip: current week (Mon-Sun) with store data
+const weekStartDate = computed(() => {
+  const now = new Date()
+  const diff = now.getDay() === 0 ? -6 : 1 - now.getDay()
+  const monday = new Date(now)
+  monday.setDate(now.getDate() + diff)
+  return monday
+})
+
+const todayISO = new Date().toISOString().slice(0, 10)
+
 const weekDays = computed(() =>
   ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((label, i) => {
-    const dayN = 18 + i
-    const dateStr = `${String(dayN).padStart(2, '0')}/05/2026`
-    const hist = TIMEKEEPING_HISTORY.find(h => h.date === dateStr) ?? null
-    const status: TKStatus = hist?.status ?? 'empty'
-    return { dayN, label, hist, status, isToday: dayN === 22 }
+    const d = new Date(weekStartDate.value)
+    d.setDate(weekStartDate.value.getDate() + i)
+    const dayN = d.getDate()
+    const dateISO = d.toISOString().slice(0, 10)
+    const dd = String(dayN).padStart(2, '0')
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dateVN = `${dd}/${mm}/${d.getFullYear()}`
+    const storeRow = tkStore.rows.find(r => r.date === dateISO)
+    const hist: TimekeepingDay | null = storeRow
+      ? mapTkRow(storeRow)
+      : (historyForMonth.value.find(h => h.date === dateVN) ?? null)
+    const isWeekend = d.getDay() === 0 || d.getDay() === 6
+    const status: TKStatus = hist?.status ?? (isWeekend ? 'weekend' : 'empty')
+    return { dayN, label, hist, status, isToday: dateISO === todayISO }
   })
 )
 const weekHours = computed(() => weekDays.value.reduce((s, d) => s + (d.hist?.hours ?? 0), 0))
 
-const DEPT_HISTORY: { name: string; workdays: number; totalHours: number; lateCount: number; leaveDays: number }[] = [
+type DeptRow = { name: string; workdays: number; totalHours: number; lateCount: number; leaveDays: number }
+const DEPT_HISTORY_MOCK: DeptRow[] = [
   { name: 'Nguyễn Văn An',   workdays: 18, totalHours: 154, lateCount: 0, leaveDays: 2 },
   { name: 'Trần Thị Mai',     workdays: 17, totalHours: 149, lateCount: 1, leaveDays: 1 },
   { name: 'Lê Quang Huy',     workdays: 19, totalHours: 161, lateCount: 0, leaveDays: 0 },
@@ -81,6 +175,23 @@ const DEPT_HISTORY: { name: string; workdays: number; totalHours: number; lateCo
   { name: 'Bùi Đức Thành',    workdays: 20, totalHours: 168, lateCount: 0, leaveDays: 0 },
   { name: 'Hoàng Đức Thành',  workdays: 15, totalHours: 130, lateCount: 3, leaveDays: 4 },
 ]
+const deptHistory = computed((): DeptRow[] => {
+  if (tkStore.rows.length === 0) return DEPT_HISTORY_MOCK
+  const map = new Map<string, DeptRow>()
+  for (const r of tkStore.rows) {
+    const name = r.full_name ?? `User ${r.user_id}`
+    let row = map.get(name)
+    if (!row) { row = { name, workdays: 0, totalHours: 0, lateCount: 0, leaveDays: 0 }; map.set(name, row) }
+    row.workdays++
+    row.totalHours = Math.round((row.totalHours + (r.total_time ?? 0) / 3600) * 10) / 10
+    const checkIn = r.check_in ?? ''
+    const timePart = checkIn.includes('T') ? checkIn.split('T')[1] : checkIn.split(' ')[1] ?? ''
+    const hour = parseInt(timePart.slice(0, 2))
+    const min = parseInt(timePart.slice(3, 5))
+    if (hour > 9 || (hour === 9 && min > 0)) row.lateCount++
+  }
+  return [...map.values()]
+})
 </script>
 
 <template>
@@ -121,8 +232,8 @@ const DEPT_HISTORY: { name: string; workdays: number; totalHours: number; lateCo
                 <p
                   class="text-[24px] font-bold font-heading mt-1 tabular-nums"
                   :class="checkinState === 'none' ? 'text-muted-foreground/60' : 'text-foreground'"
-                >{{ checkinState === 'none' ? '—' : '08:42' }}</p>
-                <p v-if="checkinState !== 'none'" class="text-[11px] text-emerald-600 font-medium">Đúng giờ</p>
+                >{{ checkinState === 'none' ? '—' : checkinTimeDisplay }}</p>
+                <p v-if="checkinState !== 'none'" class="text-[11px] font-medium" :class="isCheckinOnTime ? 'text-emerald-600' : 'text-amber-600'">{{ isCheckinOnTime ? 'Đúng giờ' : 'Đi muộn' }}</p>
               </div>
               <div class="rounded-xl border border-border/70 bg-muted/30 p-4">
                 <div class="flex items-center gap-2 text-muted-foreground text-[11px] uppercase tracking-wider font-semibold">
@@ -131,8 +242,8 @@ const DEPT_HISTORY: { name: string; workdays: number; totalHours: number; lateCo
                 <p
                   class="text-[24px] font-bold font-heading mt-1 tabular-nums"
                   :class="checkinState === 'out' ? 'text-foreground' : 'text-muted-foreground/60'"
-                >{{ checkinState === 'out' ? '18:15' : '—' }}</p>
-                <p v-if="checkinState === 'out'" class="text-[11px] text-emerald-600 font-medium">9h 33m làm việc</p>
+                >{{ checkinState === 'out' ? checkoutTimeDisplay : '—' }}</p>
+                <p v-if="checkinState === 'out'" class="text-[11px] text-emerald-600 font-medium">Đã hoàn tất</p>
               </div>
             </div>
 
@@ -146,7 +257,6 @@ const DEPT_HISTORY: { name: string; workdays: number; totalHours: number; lateCo
               <span v-else class="inline-flex items-center gap-2 px-3 h-9 rounded-md bg-emerald-500/10 text-emerald-600 font-semibold text-[13px]">
                 <Check :size="14" /> Đã hoàn tất hôm nay
               </span>
-              <Btn variant="ghost" size="sm" @click="checkinState = 'none'">Đặt lại (demo)</Btn>
             </div>
           </div>
         </div>
@@ -312,7 +422,7 @@ const DEPT_HISTORY: { name: string; workdays: number; totalHours: number; lateCo
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(m, i) in DEPT_HISTORY" :key="i" class="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors">
+              <tr v-for="(m, i) in deptHistory" :key="i" class="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors">
                 <td class="py-3 px-5">
                   <div class="flex items-center gap-2.5">
                     <Avatar :name="m.name" :size="30" />
@@ -347,7 +457,7 @@ const DEPT_HISTORY: { name: string; workdays: number; totalHours: number; lateCo
           </table>
         </div>
         <div class="px-5 py-3 border-t border-border/70 bg-muted/10 text-[12.5px] text-muted-foreground">
-          {{ MONTH_OPTIONS.find(m => m.value === selectedMonth)?.label }} · <span class="font-semibold text-foreground">{{ DEPT_HISTORY.length }}</span> thành viên
+          {{ MONTH_OPTIONS.find(m => m.value === selectedMonth)?.label }} · <span class="font-semibold text-foreground">{{ deptHistory.value.length }}</span> thành viên
         </div>
       </div>
     </template>

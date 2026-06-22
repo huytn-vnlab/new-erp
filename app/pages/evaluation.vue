@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { FileText, Plus, X, Check, ChevronDown, ChevronRight, Trash2 } from 'lucide-vue-next'
 import PageHeader from '~/components/layout/PageHeader.vue'
 import Btn from '~/components/base/Button.vue'
@@ -16,10 +16,22 @@ import {
   rankFromScore, weightedTotal, totalScore,
   type Evaluation, type EvalSectionKey,
 } from '~/mocks/evaluation'
+import { useEvaluationStore } from '~/stores/evaluation'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'auth' })
 
-const ME = 'Nguyễn Văn An'
+const auth = useAuth()
+const evalStore = useEvaluationStore()
+onMounted(() => evalStore.fetchEvaluations({
+  year: parseInt(year.value),
+  quarter: parseInt(quarter.value),
+}))
+
+watch([year, quarter], () => {
+  evalStore.fetchEvaluations({ year: parseInt(year.value), quarter: parseInt(quarter.value) })
+})
+
+const ME = computed(() => auth.user.value?.name ?? 'Nguyễn Văn An')
 
 // ── List state ──
 const year = ref('2026')
@@ -66,7 +78,7 @@ const allRows = computed(() => EVALUATIONS.filter(e => String(e.year) === year.v
 
 const filtered = computed(() =>
   allRows.value.filter(e => {
-    if (tab.value === 'mine' && e.user !== ME) return false
+    if (tab.value === 'mine' && e.user !== ME.value) return false
     if (search.value && !e.user.toLowerCase().includes(search.value.toLowerCase())) return false
     if (statusF.value !== 'all' && e.status !== statusF.value) return false
     const r = rankFromScore(totalScore(e))
@@ -87,7 +99,10 @@ const stats = computed(() => {
 
 const rankDist = computed(() => {
   const dist: Record<string, number> = { S: 0, A: 0, B: 0, C: 0, D: 0, E: 0 }
-  allRows.value.filter(e => e.status === 'submitted').forEach(e => { dist[rankFromScore(totalScore(e))]++ })
+  allRows.value.filter(e => e.status === 'submitted').forEach(e => {
+    const k = rankFromScore(totalScore(e))
+    dist[k] = (dist[k] ?? 0) + 1
+  })
   return dist
 })
 const maxRankDist = computed(() => Math.max(...Object.values(rankDist.value), 1))
@@ -108,7 +123,7 @@ const sectionAverages = computed(() => {
 
 const tabCounts = computed(() => ({
   manage: allRows.value.length,
-  mine: allRows.value.filter(e => e.user === ME).length,
+  mine: allRows.value.filter(e => e.user === ME.value).length,
 }))
 
 // ── Computed: form totals ──
@@ -507,7 +522,7 @@ function sectionGridCols(key: EvalSectionKey): string {
       <div class="flex gap-7">
         <button
           v-for="[k, l, n] in [['manage','Quản lý phiếu', tabCounts.manage], ['mine','Phiếu của tôi', tabCounts.mine], ['reports','Báo cáo & xu hướng', null]]"
-          :key="k"
+          :key="(k as string)"
           :data-active="tab === k"
           class="tab-trigger inline-flex items-center gap-2"
           @click="tab = k as typeof tab"

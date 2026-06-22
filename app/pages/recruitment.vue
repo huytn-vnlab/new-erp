@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { FileText, Plus, X, UserPlus } from 'lucide-vue-next'
 import PageHeader from '~/components/layout/PageHeader.vue'
 import Btn from '~/components/base/Button.vue'
@@ -12,10 +12,41 @@ import FieldInput from '~/components/base/FieldInput.vue'
 import {
   JOBS, APPLICANTS, FALLBACK_APPLICANTS,
   STAGE_META, JOB_STATUS_META, SRC_COLOR,
-  type Job,
+  type Job, type JobStatus,
 } from '~/mocks/recruitment'
+import type { JobRow } from '~/types'
+import { useRecruitmentStore } from '~/stores/recruitment'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'auth' })
+
+const recruitStore = useRecruitmentStore()
+onMounted(() => { recruitStore.fetchJobs(); recruitStore.fetchCvs() })
+
+const JOB_STATUS_NUM_MAP: Record<number, JobStatus> = { 1: 'open', 2: 'closed', 3: 'draft' }
+
+function mapJobRow(r: JobRow): Job {
+  return {
+    id: r.id,
+    title: r.title,
+    branch: r.branch ?? '',
+    dept: r.branch ?? '',
+    count: r.quantity ?? 0,
+    applied: 0,
+    interviewed: 0,
+    offered: 0,
+    status: JOB_STATUS_NUM_MAP[r.status] ?? 'open',
+    start: r.created_at?.slice(0, 10).split('-').reverse().join('/') ?? '',
+    end: '',
+    jp: '—',
+    salary: '',
+    owner: '',
+    desc: r.description ?? '',
+  }
+}
+
+const allJobs = computed<Job[]>(() =>
+  recruitStore.jobs.length > 0 ? recruitStore.jobs.map(mapJobRow) : JOBS
+)
 
 const search = ref('')
 const statusF = ref('all')
@@ -27,14 +58,14 @@ const statusOpts = [
   ...Object.entries(JOB_STATUS_META).map(([k, v]) => ({ value: k, label: v.label })),
 ]
 
-const allDepts = [...new Set(JOBS.map(j => j.dept))]
-const deptOpts = [
+const allDepts = computed(() => [...new Set(allJobs.value.map(j => j.dept).filter(Boolean))])
+const deptOpts = computed(() => [
   { value: 'all', label: 'Tất cả bộ phận' },
-  ...allDepts.map(d => ({ value: d, label: d })),
-]
+  ...allDepts.value.map(d => ({ value: d, label: d })),
+])
 
 const filtered = computed(() =>
-  JOBS.filter(j => {
+  allJobs.value.filter(j => {
     if (search.value && !j.title.toLowerCase().includes(search.value.toLowerCase())) return false
     if (statusF.value !== 'all' && j.status !== statusF.value) return false
     if (deptF.value !== 'all' && j.dept !== deptF.value) return false
@@ -43,11 +74,12 @@ const filtered = computed(() =>
 )
 
 const stats = computed(() => {
-  const open = JOBS.filter(j => j.status === 'open').length
-  const drafts = JOBS.filter(j => j.status === 'draft').length
-  const totalApplied = JOBS.reduce((a, j) => a + j.applied, 0)
-  const totalInterviewed = JOBS.reduce((a, j) => a + j.interviewed, 0)
-  const totalOffers = JOBS.reduce((a, j) => a + j.offered, 0)
+  const jobs = allJobs.value
+  const open = jobs.filter(j => j.status === 'open').length
+  const drafts = jobs.filter(j => j.status === 'draft').length
+  const totalApplied = jobs.reduce((a, j) => a + j.applied, 0)
+  const totalInterviewed = jobs.reduce((a, j) => a + j.interviewed, 0)
+  const totalOffers = jobs.reduce((a, j) => a + j.offered, 0)
   const convRate = totalApplied > 0 ? Math.round(totalOffers / totalApplied * 100) : 0
   return { open, drafts, totalApplied, totalInterviewed, totalOffers, convRate }
 })

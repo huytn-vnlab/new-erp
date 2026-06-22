@@ -1,17 +1,27 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import Sidebar from '~/components/layout/Sidebar.vue'
 import Topbar from '~/components/layout/Topbar.vue'
 import TweaksPanel from '~/components/layout/TweaksPanel.vue'
 import ToastHost from '~/components/base/ToastHost.vue'
+import { useNotificationStore } from '~/stores/notification'
 
 const route = useRoute()
 const { tweaks, setTweak } = useTweaks()
 const { locale, setLocale } = useI18n()
+const auth = useAuth()
+const notiStore = useNotificationStore()
+
+// Restore user state after page refresh (token in cookie but useState resets)
+onMounted(async () => {
+  if (auth.token.value && !auth.user.value) await auth.fetchUser()
+  notiStore.fetchUnreadCount()
+})
 
 const CRUMBS: Record<string, { label: string }[]> = {
   '/home-admin': [{ label: 'Trang chủ' }, { label: 'Tổng quan' }],
   '/hrm/member': [{ label: 'Trang chủ' }, { label: 'HRM' }, { label: 'Quản lý nhân viên' }],
+  '/hrm/member/profile': [{ label: 'Trang chủ' }, { label: 'HRM' }, { label: 'Quản lý nhân viên' }, { label: 'Hồ sơ cá nhân' }],
   '/hrm/leave': [{ label: 'Trang chủ' }, { label: 'HRM' }, { label: 'Đơn nghỉ phép' }],
   '/hrm/asset': [{ label: 'Trang chủ' }, { label: 'HRM' }, { label: 'Tài sản' }],
   '/hrm/contract': [{ label: 'Trang chủ' }, { label: 'HRM' }, { label: 'Hợp đồng' }],
@@ -35,8 +45,9 @@ function toggleTheme() { setTweak('theme', isDark.value ? 'light' : 'dark') }
     <Sidebar :active-route="route.path" @navigate="navigate" />
     <div class="flex-1 min-w-0 flex flex-col">
       <Topbar
-:crumbs="crumbs" :is-dark="isDark" :locale="locale" :unread="3"
-              @toggle-theme="toggleTheme" @update:locale="(l) => setLocale(l as any)" />
+        :crumbs="crumbs" :is-dark="isDark" :locale="locale" :unread="notiStore.unreadCount"
+        @toggle-theme="toggleTheme" @update:locale="(l) => setLocale(l as any)"
+      />
       <main class="app-canvas flex-1 overflow-y-auto scrollbar-thin">
         <div :key="route.path" :class="'mx-auto max-w-[1400px] flex flex-col min-h-full ' + (density === 'compact' ? 'p-4' : 'p-6')">
           <div :class="'flex-1 ' + (density === 'compact' ? 'space-y-4' : 'space-y-6')">

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { FileText, Plus, X, Check, Folder, Target, Search } from 'lucide-vue-next'
 import PageHeader from '~/components/layout/PageHeader.vue'
 import Btn from '~/components/base/Button.vue'
@@ -10,13 +10,43 @@ import Select from '~/components/base/Select.vue'
 import FilterBar from '~/components/base/FilterBar.vue'
 import FieldInput from '~/components/base/FieldInput.vue'
 import { PROJECTS_INIT, PROJECT_STATUS_META, ALL_MEMBERS, ALL_TECH, type Project, type ProjectStatus, type ProjectTarget } from '~/mocks/project'
+import { useProjectStore } from '~/stores/project'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'auth' })
 
-const ME_MANAGER = 'Hoàng Đức Thành'
+const auth = useAuth()
+const projectStore = useProjectStore()
+onMounted(() => projectStore.fetchProjects())
+
+const ME_MANAGER = computed(() => auth.user.value?.name ?? 'Hoàng Đức Thành')
 
 // ── List state ──
 const projects = ref<Project[]>(PROJECTS_INIT.map(p => ({ ...p, targets: [...p.targets] })))
+
+// Populate from store when data loads
+watch(() => projectStore.projects, (rows) => {
+  if (rows.length > 0) {
+    projects.value = rows.map(r => ({
+      id: r.project_id,
+      name: r.project_name,
+      desc: r.project_description ?? '',
+      status: 'active' as ProjectStatus,
+      manager: ME_MANAGER.value,
+      branch: '',
+      start: r.created_at ? r.created_at.slice(0, 10).split('-').reverse().join('/') : '',
+      end: '—',
+      members: 0,
+      tech: [],
+      targets: (r.project_targets ?? []).map((t, i) => ({
+        id: i + 1,
+        year: t.year ?? new Date().getFullYear(),
+        quarter: t.quarter ?? 1,
+        weight: 5,
+        content: t.content ?? '',
+      })),
+    }))
+  }
+}, { immediate: true })
 const tab = ref<'all' | 'mine' | 'active' | 'ended'>('all')
 const search = ref('')
 const statusF = ref('all')
@@ -27,7 +57,7 @@ const modalEditing = ref<Project | null>(null)
 const toast = ref('')
 
 // ── Modal form state ──
-const form = reactive({ name: '', manager: ME_MANAGER, start: '', end: '', desc: '', status: 'pending' as ProjectStatus })
+const form = reactive({ name: '', manager: ME_MANAGER.value, start: '', end: '', desc: '', status: 'pending' as ProjectStatus })
 const modalMembers = ref<string[]>([])
 const modalTechs = ref<string[]>([])
 const modalTargets = ref<ProjectTarget[]>([])
@@ -51,7 +81,7 @@ const modalStatusOpts = Object.entries(PROJECT_STATUS_META).map(([k, v]) => ({ v
 // ── Computed: list ──
 const filtered = computed(() =>
   projects.value.filter(p => {
-    if (tab.value === 'mine' && p.manager !== ME_MANAGER) return false
+    if (tab.value === 'mine' && p.manager !== ME_MANAGER.value) return false
     if (tab.value === 'active' && p.status !== 'active') return false
     if (tab.value === 'ended' && p.status !== 'ended') return false
     if (search.value && !p.name.toLowerCase().includes(search.value.toLowerCase())) return false
@@ -65,7 +95,7 @@ const stats = computed(() => ({
   active: projects.value.filter(p => p.status === 'active').length,
   pending: projects.value.filter(p => p.status === 'pending').length,
   ended: projects.value.filter(p => p.status === 'ended').length,
-  mine: projects.value.filter(p => p.manager === ME_MANAGER).length,
+  mine: projects.value.filter(p => p.manager === ME_MANAGER.value).length,
 }))
 
 const tabCounts = computed(() => ({
@@ -116,7 +146,7 @@ function formatDate(d: string): string {
 
 function openCreateModal() {
   modalEditing.value = null
-  Object.assign(form, { name: '', manager: ME_MANAGER, start: '', end: '', desc: '', status: 'pending' })
+  Object.assign(form, { name: '', manager: ME_MANAGER.value, start: '', end: '', desc: '', status: 'pending' })
   modalMembers.value = []
   modalTechs.value = []
   modalTargets.value = []
@@ -147,7 +177,7 @@ function openEditModal(p: Project) {
   modalOpen.value = true
 }
 
-function submitModal() {
+async function submitModal() {
   formErrors.name = ''
   formErrors.start = ''
   if (!form.name.trim()) { formErrors.name = 'Vui lòng nhập tên dự án'; return }
@@ -163,11 +193,14 @@ function submitModal() {
   }
 
   if (modalEditing.value) {
+    await projectStore.updateProject({ project_id: modalEditing.value.id, project_name: form.name, project_description: form.desc })
     const idx = projects.value.findIndex(p => p.id === modalEditing.value!.id)
-    if (idx >= 0) projects.value[idx] = { ...projects.value[idx], ...data }
+    if (idx >= 0) projects.value[idx] = { ...projects.value[idx]!, ...data } as Project
     showToast('Đã cập nhật dự án: ' + form.name)
   } else {
-    projects.value.unshift({ ...data, id: Date.now(), branch: 'Hà Nội', members: modalMembers.value.length || 1 } as Project)
+    const res = await projectStore.createProject({ project_name: form.name, managed_by: auth.user.value?.id ?? 0, project_description: form.desc })
+    const newId = res?.data?.project_id ?? Date.now()
+    projects.value.unshift({ ...data, id: newId, branch: 'Hà Nội', members: modalMembers.value.length || 1 } as Project)
     showToast('Đã tạo dự án: ' + form.name)
   }
   modalOpen.value = false
@@ -371,8 +404,8 @@ function memberAvatarBg(i: number): string {
               </div>
             </div>
             <div v-if="detailSortedTargets.length > 0" class="card-surface p-5">
-              <h3 class="section-title mb-3">Mục tiêu gần nhất · Quý {{ detailSortedTargets[0].quarter }}/{{ detailSortedTargets[0].year }}</h3>
-              <p class="text-[13px] text-foreground/85 whitespace-pre-wrap leading-relaxed">{{ detailSortedTargets[0].content }}</p>
+              <h3 class="section-title mb-3">Mục tiêu gần nhất · Quý {{ detailSortedTargets[0]!.quarter }}/{{ detailSortedTargets[0]!.year }}</h3>
+              <p class="text-[13px] text-foreground/85 whitespace-pre-wrap leading-relaxed">{{ detailSortedTargets[0]!.content }}</p>
             </div>
           </template>
 

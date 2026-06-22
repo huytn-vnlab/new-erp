@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { FileText, Plus, Check, X, Clock } from 'lucide-vue-next'
 import PageHeader from '~/components/layout/PageHeader.vue'
 import Btn from '~/components/base/Button.vue'
@@ -11,15 +11,65 @@ import FilterBar from '~/components/base/FilterBar.vue'
 import FieldInput from '~/components/base/FieldInput.vue'
 import SectionCard from '~/components/home/SectionCard.vue'
 import BarRow from '~/components/charts/BarRow.vue'
-import { OT_REQUESTS, OT_STATUS_META, OT_PROJECTS, type OTRequest } from '~/mocks/overtime'
+import { OT_REQUESTS, OT_STATUS_META, OT_PROJECTS, type OTRequest, type OTStatus } from '~/mocks/overtime'
+import type { OvertimeRow } from '~/types'
+import { useOvertimeStore } from '~/stores/overtime'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'auth' })
 
-const ME = 'Nguyễn Văn An'
+const auth = useAuth()
+const overtimeStore = useOvertimeStore()
+onMounted(() => overtimeStore.fetchOvertimes())
+
+const ME = computed(() => auth.user.value?.name ?? 'Nguyễn Văn An')
+
+const STATUS_MAP: Record<number, OTStatus> = { 1: 'pending', 2: 'approved', 3: 'rejected' }
+
+function mapOtRow(r: OvertimeRow): OTRequest {
+  // datetime_overtime_from format: "YYYY-MM-DD HH:mm:ss" or "YYYY-MM-DDTHH:mm:ss"
+  const fromStr = r.datetime_overtime_from?.replace('T', ' ') ?? ''
+  const toStr = r.datetime_overtime_to?.replace('T', ' ') ?? ''
+  const [fromDate, fromTime] = fromStr.split(' ')
+  const [, toTime] = toStr.split(' ')
+  let dateVN = '—'
+  if (fromDate) {
+    const [y, m, d] = fromDate.split('-')
+    dateVN = `${d}/${m}/${y}`
+  }
+  const start = fromTime?.slice(0, 5) ?? '—'
+  const end = toTime?.slice(0, 5) ?? '—'
+  let hours = 0
+  if (fromStr && toStr) {
+    const diff = (new Date(toStr.trim()).getTime() - new Date(fromStr.trim()).getTime()) / 3600000
+    hours = Math.round(diff * 10) / 10
+  }
+  const status: OTStatus = STATUS_MAP[r.status] ?? 'pending'
+  return {
+    id: r.id,
+    user: r.full_name ?? `User ${r.user_id}`,
+    branch: '',
+    project: r.project_name ?? `Project ${r.project_id}`,
+    date: dateVN,
+    start,
+    end,
+    hours,
+    reason: r.reason ?? '',
+    status,
+    approver: null,
+    approved: null,
+    submitted: r.created_at?.slice(0, 10) ?? '',
+  }
+}
+
 const tab = ref<'manage' | 'mine'>('manage')
 const statusFilter = ref('all')
 const search = ref('')
 const requests = ref<OTRequest[]>(OT_REQUESTS.map(r => ({ ...r })))
+
+// Populate from store when data loads
+watch(() => overtimeStore.rows, (rows) => {
+  if (rows.length > 0) requests.value = rows.map(mapOtRow)
+}, { immediate: true })
 const openReject = ref<OTRequest | null>(null)
 const rejectReason = ref('')
 const showCreate = ref(false)
@@ -38,7 +88,7 @@ const newReason = ref('')
 
 const filtered = computed(() =>
   requests.value.filter(r => {
-    if (tab.value === 'mine' && r.user !== ME) return false
+    if (tab.value === 'mine' && r.user !== ME.value) return false
     if (statusFilter.value !== 'all' && r.status !== statusFilter.value) return false
     const q = search.value.toLowerCase()
     if (q && !r.user.toLowerCase().includes(q) && !r.project.toLowerCase().includes(q)) return false
@@ -48,15 +98,15 @@ const filtered = computed(() =>
 
 const tabCounts = computed(() => ({
   manage: requests.value.length,
-  mine: requests.value.filter(r => r.user === ME).length,
+  mine: requests.value.filter(r => r.user === ME.value).length,
 }))
 
 const stats = computed(() => {
   const pending = requests.value.filter(r => r.status === 'pending').length
   const approved = requests.value.filter(r => r.status === 'approved')
   const totalHours = approved.reduce((s, r) => s + r.hours, 0)
-  const myPending = requests.value.filter(r => r.user === ME && r.status === 'pending').length
-  const myHours = requests.value.filter(r => r.user === ME && r.status !== 'rejected').reduce((s, r) => s + r.hours, 0)
+  const myPending = requests.value.filter(r => r.user === ME.value && r.status === 'pending').length
+  const myHours = requests.value.filter(r => r.user === ME.value && r.status !== 'rejected').reduce((s, r) => s + r.hours, 0)
   const uniqueUsers = new Set(approved.map(r => r.user)).size
   const avgPerPerson = uniqueUsers > 0 ? totalHours / uniqueUsers : 0
   return { pending, approvedCount: approved.length, totalHours, myPending, myHours, avgPerPerson }
@@ -66,7 +116,7 @@ const stats = computed(() => {
 const otByDay = computed(() => {
   const m: Record<number, number> = {}
   requests.value.filter(r => r.status === 'approved').forEach(r => {
-    const d = parseInt(r.date.split('/')[0])
+    const d = parseInt(r.date.split('/')[0] ?? '1')
     m[d] = (m[d] ?? 0) + r.hours
   })
   return m
@@ -111,16 +161,24 @@ function otCellBg(h: number, intensity: number) {
   return `hsl(var(--primary-h) var(--primary-s) ${l}% / ${a}%)`
 }
 
-function handleApprove(row: OTRequest) {
+async function handleApprove(row: OTRequest) {
+  await overtimeStore.updateStatus(row.id, 2)
   const idx = requests.value.findIndex(r => r.id === row.id)
-  if (idx >= 0) requests.value[idx] = { ...requests.value[idx], status: 'approved', approver: 'Hoàng Đức Thành' }
+  if (idx >= 0) {
+    const cur = requests.value[idx]!
+    requests.value[idx] = { ...cur, status: 'approved', approver: ME.value }
+  }
 }
 
-function confirmReject() {
+async function confirmReject() {
   if (!openReject.value || !rejectReason.value.trim()) return
   const id = openReject.value.id
+  await overtimeStore.updateStatus(id, 3)
   const idx = requests.value.findIndex(r => r.id === id)
-  if (idx >= 0) requests.value[idx] = { ...requests.value[idx], status: 'rejected', approver: 'Hoàng Đức Thành', rejectReason: rejectReason.value }
+  if (idx >= 0) {
+    const cur = requests.value[idx]!
+    requests.value[idx] = { ...cur, status: 'rejected', approver: ME.value, rejectReason: rejectReason.value }
+  }
   openReject.value = null
   rejectReason.value = ''
 }

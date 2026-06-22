@@ -2,7 +2,7 @@
 
 ## Dự án
 
-ERP nội bộ cho **VNLab (GMO-Z.com Vietnam Lab Center)**. Rebuild toàn bộ trên Nuxt 4 SPA với design system mới, UX cải tiến. UI-first: tất cả trang dùng mock data; API integrate ở Plan B4.
+ERP nội bộ cho **VNLab (GMO-Z.com Vietnam Lab Center)**. Rebuild toàn bộ trên Nuxt 4 SPA với design system mới, UX cải tiến. B1–B3: UI với mock data. B4: real API (JWT, Pinia stores). B5: layout integration + profile page.
 
 ## Tech Stack
 
@@ -32,7 +32,9 @@ app/
     asset/                    AssetDetail
     contract/                 ContractForm
     timekeeping/              TimekeepingCalendar
-  composables/                useToast, useTweaks, useApi (stub), useAuth (stub)
+  composables/                useToast, useTweaks, useApi ($fetch+JWT+auto-refresh), useAuth (login/logout/fetchUser)
+  stores/                     member, leave, timekeeping, asset, contract, evaluation,
+                              project, overtime, recruitment, settings, dashboard, notification
   layouts/
     admin.vue                 Main layout (Sidebar + Topbar) — mọi page HRM dùng cái này
     auth.vue                  Login/register layout
@@ -90,15 +92,16 @@ eyebrow, title, description?, #actions slot
 
 - Mock data sống trong `app/mocks/<feature>.ts`
 - Export: types + mock arrays + meta objects (status, category mapping) + helpers
-- Pages import trực tiếp, không qua store hay API call
-- `useApi` và `useAuth` là **stubs** — comment rõ: _"Logic thật sẽ khôi phục ở B4 migrate API"_
+- Pages dùng pattern `store.data.length ? store.data : MOCK_DATA` — fallback về mock khi API offline
+- `useApi`: real `$fetch` client với JWT Bearer, auto-refresh on 401 → `POST /api/auth/refresh`
+- `useAuth`: login (FormData POST), logout, fetchUser — cookies `auth_token` (72h) + `refresh_token` (30d)
 
 ## Quy tắc Code
 
 1. **pnpm** — không dùng npm hay yarn
 2. **`definePageMeta({ layout: 'admin' })`** — bắt buộc trên mọi HRM page
 3. **Không comment thừa** — chỉ khi WHY không tự hiển nhiên
-4. **Text tiếng Việt trực tiếp** — không wrap `t()` ở B1–B3
+4. **Text tiếng Việt trực tiếp** — không wrap `t()` (i18n setup có nhưng chưa dùng)
 5. **Đọc file trước khi edit** — Write tool yêu cầu; không bao giờ overwrite mù
 6. **Import alias `~/`** — luôn dùng `~/components/`, `~/mocks/`, `~/composables/`
 7. **Tailwind inline style** khi cần dynamic HSL: `style="{ color: 'hsl(var(--primary))' }"`
@@ -166,11 +169,13 @@ Design prototype JSX files trong `design/` là nguồn chân lý duy nhất cho 
 | Plan | Status | Nội dung |
 |---|---|---|
 | **B1** | ✅ Hoàn thành | Foundation + Design System + Layout + Home Dashboard + Member |
-| **B2** | 🔄 Đang làm | HRM pages: leave, asset, contract, timekeeping (mock data) |
-| **B3** | ⏳ Tiếp theo | Pages còn lại: evaluation, recruitment, overtime, project, settings |
-| **B4** | ⏳ Sau này | Migrate API — thay mock data bằng real API calls |
+| **B2** | ✅ Hoàn thành | HRM pages: leave, asset, contract, timekeeping (mock data) |
+| **B3** | ✅ Hoàn thành | Pages còn lại: evaluation, recruitment, overtime, project, settings |
+| **B4** | ✅ Hoàn thành | Migrate API — useApi + useAuth thật, auth middleware, 11 domain stores, pages wired |
+| **B5** | ✅ Hoàn thành | Layout integration: Topbar/Banner real auth user, notification store, check-in API, profile page |
 
-## Lưu ý API Migration (B4)
+## API
 
-`useApi` và `useAuth` composables hiện là stubs với comment hướng dẫn restore.
-`runtimeConfig.public.apiBase` → `NUXT_ENV_AXIOS_BASE_URL` (default: `http://localhost:8080`).
+- Base URL: `NUXT_ENV_AXIOS_BASE_URL` (default: `http://localhost:8010`)
+- Auth: JWT Bearer token. Login: `POST /api/auth/login` (FormData). Refresh: `POST /api/auth/refresh`.
+- Response envelope: `{ status: number; message: string; data: T | null }` — `status === 1` = success.

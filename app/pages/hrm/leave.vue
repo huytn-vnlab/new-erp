@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Plus, X, Search, CalendarCheck } from 'lucide-vue-next'
 import PageHeader from '~/components/layout/PageHeader.vue'
 import Btn from '~/components/base/Button.vue'
@@ -11,13 +11,35 @@ import LeaveGrid from '~/components/leave/LeaveGrid.vue'
 import {
   LEAVE_MEMBERS, LEAVE_ENTRIES, LEAVE_TYPES, LEAVE_TYPE_META, LEAVE_STATUS_META,
   LEAVE_INFO_ROWS, LEAVE_HISTORY_ROWS, LEAVE_ADD_TYPES,
-  type LeaveEntry, type LeaveInfoRow,
+  type LeaveEntry, type LeaveInfoRow, type LeaveStatus,
 } from '~/mocks/leave'
+import type { LeaveRequest } from '~/types'
+import { useLeaveStore } from '~/stores/leave'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'auth' })
+
+const leaveStore = useLeaveStore()
+onMounted(() => { leaveStore.fetchLeaveInfo(); leaveStore.fetchLeaveRequests() })
+
+const LEAVE_STATUS_NUM_MAP: Record<number, LeaveStatus> = { 1: 'pending', 2: 'approved', 3: 'rejected' }
+
+function mapLeaveRequest(r: LeaveRequest): LeaveEntry {
+  const fromISO = r.datetime_leave_from?.slice(0, 10) ?? ''
+  const toISO = r.datetime_leave_to?.slice(0, 10) ?? ''
+  return {
+    id: r.id,
+    memberId: r.user_id,
+    type: (r.leave_request_type as LeaveEntry['type']) ?? 'Nghỉ cả ngày',
+    from: fromISO,
+    to: toISO,
+    status: LEAVE_STATUS_NUM_MAP[r.status] ?? 'pending',
+    reason: r.reason ?? '',
+    half: false,
+  }
+}
 
 const tab = ref<'manage' | 'create' | 'info' | 'history'>('manage')
-const weekStart = ref('2026-06-02')
+const weekStart = ref(new Date().toISOString().slice(0, 10))
 const search = ref('')
 const fromDate = ref('')
 const toDate = ref('')
@@ -27,6 +49,11 @@ const PER_PAGE = 8
 const entries = ref([...LEAVE_ENTRIES])
 const detail = ref<LeaveEntry | null>(null)
 const addDaysRow = ref<LeaveInfoRow | null>(null)
+
+// Populate from store when data loads
+watch(() => leaveStore.requests, (reqs) => {
+  if (reqs.length > 0) entries.value = reqs.map(mapLeaveRequest)
+}, { immediate: true })
 
 const createForm = ref({ member: '', type: 'Nghỉ cả ngày', from: '', to: '', half: false, reason: '' })
 const addDaysForm = ref({ type: '', amount: '1', year: '2026', reason: '' })
@@ -61,21 +88,31 @@ const pagedMembers = computed(() =>
   filteredMembers.value.slice((page.value - 1) * PER_PAGE, page.value * PER_PAGE)
 )
 
-function approve(e: LeaveEntry) {
+async function approve(e: LeaveEntry) {
+  await leaveStore.updateStatus(e.id, 2)
   entries.value = entries.value.map(x => x.id === e.id ? { ...x, status: 'approved' as const } : x)
   if (detail.value?.id === e.id) detail.value = { ...detail.value, status: 'approved' }
   show('Đã duyệt đơn nghỉ.')
 }
-function reject(e: LeaveEntry) {
+async function reject(e: LeaveEntry) {
+  await leaveStore.updateStatus(e.id, 3)
   entries.value = entries.value.map(x => x.id === e.id ? { ...x, status: 'rejected' as const } : x)
   if (detail.value?.id === e.id) detail.value = { ...detail.value, status: 'rejected' }
   show('Đã từ chối đơn nghỉ.', 'error')
 }
-function submitCreate() {
+async function submitCreate() {
   if (!createForm.value.member || !createForm.value.from || !createForm.value.to || !createForm.value.reason) return
+  await leaveStore.createLeave({
+    leave_request_type: createForm.value.type,
+    datetime_leave_from: createForm.value.from,
+    datetime_leave_to: createForm.value.to,
+    reason: createForm.value.reason,
+    half_day: createForm.value.half,
+  })
   show('Đã gửi đơn xin nghỉ.')
   tab.value = 'manage'
   createForm.value = { member: '', type: 'Nghỉ cả ngày', from: '', to: '', half: false, reason: '' }
+  await leaveStore.fetchLeaveRequests()
 }
 function submitAddDays() {
   addDaysErrors.value = {}

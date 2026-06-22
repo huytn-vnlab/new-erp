@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Search, FileText, Eye } from 'lucide-vue-next'
 import PageHeader from '~/components/layout/PageHeader.vue'
 import Btn from '~/components/base/Button.vue'
@@ -11,8 +11,13 @@ import {
   CONTRACTS, CONTRACT_TYPES, CONTRACT_BRANCHES,
   type Contract,
 } from '~/mocks/contract'
+import type { ContractRow } from '~/types'
+import { useContractStore } from '~/stores/contract'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'auth' })
+
+const contractStore = useContractStore()
+onMounted(() => { contractStore.fetchContracts(); contractStore.fetchContractTypes() })
 
 const tab = ref<'list' | 'create' | 'types'>('list')
 const search = ref('')
@@ -22,14 +27,38 @@ const selected = ref<Contract | null>(null)
 
 const { show } = useToast()
 
-const branchOpts = [{ value: 'all', label: 'Tất cả chi nhánh' }, ...CONTRACT_BRANCHES.map(b => ({ value: b, label: b }))]
-const typeOpts = computed(() => [
-  { value: 'all', label: 'Tất cả loại' },
-  ...CONTRACT_TYPES.map(t => ({ value: t.name, label: t.name })),
-])
+function mapContractRow(r: ContractRow): Contract {
+  return {
+    id: r.id,
+    user: `${r.first_name} ${r.last_name}`.trim(),
+    branch: r.branch_name ?? '',
+    start: r.contract_start_date ?? '',
+    end: r.contract_end_date ?? null,
+    joined: '',
+    type: r.contract_type_name ?? '',
+  }
+}
+
+const allContracts = computed<Contract[]>(() =>
+  contractStore.contracts.length > 0 ? contractStore.contracts.map(mapContractRow) : CONTRACTS
+)
+
+const branchOpts = computed(() => {
+  const names = contractStore.contracts.length > 0
+    ? [...new Set(contractStore.contracts.map(c => c.branch_name).filter(Boolean))] as string[]
+    : CONTRACT_BRANCHES
+  return [{ value: 'all', label: 'Tất cả chi nhánh' }, ...names.map(b => ({ value: b, label: b }))]
+})
+
+const typeOpts = computed(() => {
+  const types = contractStore.contractTypes.length > 0
+    ? contractStore.contractTypes.map(t => ({ value: t.name, label: t.name }))
+    : CONTRACT_TYPES.map(t => ({ value: t.name, label: t.name }))
+  return [{ value: 'all', label: 'Tất cả loại' }, ...types]
+})
 
 const filtered = computed(() =>
-  CONTRACTS.filter(c => {
+  allContracts.value.filter(c => {
     const q = search.value.toLowerCase()
     if (q && !c.user.toLowerCase().includes(q) && !c.type.toLowerCase().includes(q)) return false
     if (filterBranch.value !== 'all' && c.branch !== filterBranch.value) return false
@@ -172,7 +201,11 @@ const fmtDateShort = (iso: string) => iso.slice(0, 7).replace('-', '/')
               </tr>
             </thead>
             <tbody>
-              <tr v-for="t in CONTRACT_TYPES" :key="t.id" class="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors">
+              <tr
+                v-for="t in (contractStore.contractTypes.length > 0 ? contractStore.contractTypes.map(ct => ({ id: ct.contract_type_id, name: ct.name, file: ct.file_template_name, created: ct.created_at, updated: ct.created_at })) : CONTRACT_TYPES)"
+                :key="t.id"
+                class="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors"
+              >
                 <td class="py-3 px-5 text-muted-foreground tabular-nums font-mono">{{ t.id }}</td>
                 <td class="py-3 px-3 font-medium text-foreground">{{ t.name }}</td>
                 <td class="py-3 px-3">
@@ -188,7 +221,7 @@ const fmtDateShort = (iso: string) => iso.slice(0, 7).replace('-', '/')
           </table>
         </div>
         <div class="px-5 py-3 border-t border-border/70 bg-muted/10 text-[12.5px] text-muted-foreground">
-          Tổng: <span class="font-semibold text-foreground">{{ CONTRACT_TYPES.length }}</span> loại hợp đồng
+          Tổng: <span class="font-semibold text-foreground">{{ contractStore.contractTypes.length || CONTRACT_TYPES.length }}</span> loại hợp đồng
         </div>
       </div>
     </template>
