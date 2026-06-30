@@ -201,7 +201,7 @@ const detailMember = computed(() => detail.value ? { name: detail.value.name, br
       description="Lịch nghỉ phép theo tuần của toàn bộ nhân viên. Chọn ô để xem chi tiết và duyệt đơn."
     >
       <template #actions>
-        <Btn variant="primary" @click="tab = 'create'"><Plus :size="14" /> Tạo xin nghỉ</Btn>
+        <Btn variant="primary" @click="tab = 'create'"><Plus :size="14" /> Tạo đơn</Btn>
       </template>
     </PageHeader>
 
