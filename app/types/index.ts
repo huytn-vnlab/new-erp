@@ -145,6 +145,17 @@ export interface LeaveBonusRow {
   created_at: string
 }
 
+export interface AllUserLeaveInfo {
+  user_id: number
+  full_name: string
+  email: string
+  branch_name: string
+  day_used: number
+  day_remaining: number
+  day_remaining_previous: number
+  status: number
+}
+
 // ── Timekeeping ───────────────────────────────────────────────────────────
 export interface TimekeepingRow {
   id: number

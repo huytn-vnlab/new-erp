@@ -1,40 +1,56 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { Plus, X, Search, CalendarCheck } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { Plus, X, Search, CalendarCheck, FileX } from 'lucide-vue-next'
 import PageHeader from '~/components/layout/PageHeader.vue'
 import Btn from '~/components/base/Button.vue'
 import MiniStat from '~/components/base/MiniStat.vue'
 import Avatar from '~/components/base/Avatar.vue'
 import Badge from '~/components/base/Badge.vue'
 import Select from '~/components/base/Select.vue'
-import LeaveGrid from '~/components/leave/LeaveGrid.vue'
-import {
-  LEAVE_MEMBERS, LEAVE_ENTRIES, LEAVE_TYPES, LEAVE_TYPE_META, LEAVE_STATUS_META,
-  LEAVE_INFO_ROWS, LEAVE_HISTORY_ROWS, LEAVE_ADD_TYPES,
-  type LeaveEntry, type LeaveInfoRow, type LeaveStatus,
-} from '~/mocks/leave'
-import type { LeaveRequest } from '~/types'
+import SkeletonRow from '~/components/base/SkeletonRow.vue'
+import EmptyState from '~/components/base/EmptyState.vue'
+import ErrorBanner from '~/components/base/ErrorBanner.vue'
 import { useLeaveStore } from '~/stores/leave'
+import { useMemberStore } from '~/stores/member'
+import type { LeaveRequest } from '~/types'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
 const leaveStore = useLeaveStore()
-onMounted(() => { leaveStore.fetchLeaveInfo(); leaveStore.fetchLeaveRequests() })
+const memberStore = useMemberStore()
+
+type LeaveStatus = 'pending' | 'approved' | 'rejected'
+type LeaveEntry = {
+  id: number; memberId: number; name: string; branch: string
+  type: string; from: string; to: string
+  status: LeaveStatus; reason: string; half: boolean
+}
 
 const LEAVE_STATUS_NUM_MAP: Record<number, LeaveStatus> = { 1: 'pending', 2: 'approved', 3: 'rejected' }
+const LEAVE_STATUS_META: Record<LeaveStatus, { label: string; variant: 'amber' | 'green' | 'red' }> = {
+  pending:  { label: 'Chờ duyệt', variant: 'amber' },
+  approved: { label: 'Đã duyệt',  variant: 'green' },
+  rejected: { label: 'Từ chối',   variant: 'red' },
+}
+
+onMounted(() => {
+  leaveStore.fetchLeaveInfo()
+  leaveStore.fetchLeaveRequests()
+  leaveStore.fetchBonuses()
+  leaveStore.fetchLeaveInfoAll()
+  memberStore.fetchMembers()
+})
 
 function mapLeaveRequest(r: LeaveRequest): LeaveEntry {
-  const fromISO = r.datetime_leave_from?.slice(0, 10) ?? ''
-  const toISO = r.datetime_leave_to?.slice(0, 10) ?? ''
   return {
-    id: r.id,
-    memberId: r.user_id,
+    id: r.id, memberId: r.user_id,
+    name: r.full_name ?? '',
+    branch: r.branch ?? '',
     type: (r.leave_request_type as LeaveEntry['type']) ?? 'Nghỉ cả ngày',
-    from: fromISO,
-    to: toISO,
+    from: r.datetime_leave_from?.slice(0, 10) ?? '',
+    to: r.datetime_leave_to?.slice(0, 10) ?? '',
     status: LEAVE_STATUS_NUM_MAP[r.status] ?? 'pending',
-    reason: r.reason ?? '',
-    half: false,
+    reason: r.reason ?? '', half: false,
   }
 }
 
@@ -46,16 +62,14 @@ const toDate = ref('')
 const page = ref(1)
 const PER_PAGE = 8
 
-const entries = ref([...LEAVE_ENTRIES])
+const entries = computed(() => leaveStore.requests.map(mapLeaveRequest))
 const detail = ref<LeaveEntry | null>(null)
-const addDaysRow = ref<LeaveInfoRow | null>(null)
 
-// Populate from store when data loads
-watch(() => leaveStore.requests, (reqs) => {
-  if (reqs.length > 0) entries.value = reqs.map(mapLeaveRequest)
-}, { immediate: true })
+type InfoRow = { name: string; email: string; branch: string; used: number; curr: number; prev: number; active: boolean }
+const addDaysRow = ref<InfoRow | null>(null)
 
 const createForm = ref({ member: '', type: 'Nghỉ cả ngày', from: '', to: '', half: false, reason: '' })
+const createErrors = ref<Record<string, boolean>>({})
 const addDaysForm = ref({ type: '', amount: '1', year: '2026', reason: '' })
 const addDaysErrors = ref<Record<string, boolean>>({})
 
@@ -80,49 +94,66 @@ const stats = computed(() => ({
   ).size,
 }))
 
-const filteredMembers = computed(() =>
-  LEAVE_MEMBERS.filter(m => !search.value || m.name.toLowerCase().includes(search.value.toLowerCase()))
+const filtered = computed(() =>
+  entries.value.filter(e =>
+    !search.value || e.name.toLowerCase().includes(search.value.toLowerCase())
+  )
 )
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredMembers.value.length / PER_PAGE)))
-const pagedMembers = computed(() =>
-  filteredMembers.value.slice((page.value - 1) * PER_PAGE, page.value * PER_PAGE)
+const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / PER_PAGE)))
+const paged = computed(() =>
+  filtered.value.slice((page.value - 1) * PER_PAGE, page.value * PER_PAGE)
 )
 
 async function approve(e: LeaveEntry) {
-  await leaveStore.updateStatus(e.id, 2)
-  entries.value = entries.value.map(x => x.id === e.id ? { ...x, status: 'approved' as const } : x)
-  if (detail.value?.id === e.id) detail.value = { ...detail.value, status: 'approved' }
-  show('Đã duyệt đơn nghỉ.')
+  const result = await leaveStore.updateStatus(e.id, 2)
+  show(result.ok ? 'Đã duyệt đơn nghỉ.' : result.message, result.ok ? 'success' : 'error')
+  if (result.ok) await leaveStore.fetchLeaveRequests()
 }
 async function reject(e: LeaveEntry) {
-  await leaveStore.updateStatus(e.id, 3)
-  entries.value = entries.value.map(x => x.id === e.id ? { ...x, status: 'rejected' as const } : x)
-  if (detail.value?.id === e.id) detail.value = { ...detail.value, status: 'rejected' }
-  show('Đã từ chối đơn nghỉ.', 'error')
+  const result = await leaveStore.updateStatus(e.id, 3)
+  show(result.ok ? 'Đã từ chối đơn nghỉ.' : result.message, result.ok ? 'error' : 'error')
+  if (result.ok) await leaveStore.fetchLeaveRequests()
 }
 async function submitCreate() {
-  if (!createForm.value.member || !createForm.value.from || !createForm.value.to || !createForm.value.reason) return
-  await leaveStore.createLeave({
+  createErrors.value = {}
+  if (!createForm.value.from) createErrors.value.from = true
+  if (!createForm.value.to) createErrors.value.to = true
+  if (!createForm.value.reason.trim()) createErrors.value.reason = true
+  if (Object.keys(createErrors.value).length) return
+  const result = await leaveStore.createLeave({
     leave_request_type: createForm.value.type,
     datetime_leave_from: createForm.value.from,
     datetime_leave_to: createForm.value.to,
     reason: createForm.value.reason,
     half_day: createForm.value.half,
   })
-  show('Đã gửi đơn xin nghỉ.')
-  tab.value = 'manage'
-  createForm.value = { member: '', type: 'Nghỉ cả ngày', from: '', to: '', half: false, reason: '' }
-  await leaveStore.fetchLeaveRequests()
+  show(result.ok ? 'Đã gửi đơn xin nghỉ.' : result.message, result.ok ? 'success' : 'error')
+  if (result.ok) {
+    tab.value = 'manage'
+    createForm.value = { member: '', type: 'Nghỉ cả ngày', from: '', to: '', half: false, reason: '' }
+    leaveStore.fetchLeaveRequests()
+  }
 }
-function submitAddDays() {
+async function submitAddDays() {
   addDaysErrors.value = {}
   if (!addDaysForm.value.type) addDaysErrors.value.type = true
   if (!addDaysForm.value.amount || Number(addDaysForm.value.amount) <= 0) addDaysErrors.value.amount = true
   if (!addDaysForm.value.reason.trim()) addDaysErrors.value.reason = true
   if (Object.keys(addDaysErrors.value).length) return
-  show('Đã thêm ngày nghỉ.')
-  addDaysRow.value = null
-  addDaysForm.value = { type: '', amount: '1', year: '2026', reason: '' }
+
+  const result = await leaveStore.addLeaveBonus({
+    user_id: 0,
+    leave_bonus_type: addDaysForm.value.type,
+    hour: Number(addDaysForm.value.amount),
+    year: Number(addDaysForm.value.year),
+    reason: addDaysForm.value.reason,
+  })
+  show(result.message || (result.ok ? 'Đã thêm ngày nghỉ.' : 'Thêm thất bại.'), result.ok ? 'success' : 'error')
+  if (result.ok) {
+    addDaysRow.value = null
+    addDaysForm.value = { type: '', amount: '1', year: '2026', reason: '' }
+    leaveStore.fetchBonuses()
+  }
 }
 
 const TABS = [
@@ -132,22 +163,34 @@ const TABS = [
   { k: 'history', l: 'Lịch sử thêm ngày phép' },
 ] as const
 
-const memberOpts = LEAVE_MEMBERS.map(m => ({ value: m.name, label: m.name }))
-const typeOpts = LEAVE_TYPES.map(t => ({ value: t, label: t }))
-const addTypeOpts = LEAVE_ADD_TYPES.map(t => ({ value: t, label: t }))
+const memberOpts = computed(() =>
+  memberStore.members.map(m => ({ value: String(m.id), label: m.name }))
+)
+const typeOpts = computed(() =>
+  Object.keys(leaveStore.leaveInfo?.leave_request_types ?? {}).map(k => ({ value: k, label: k }))
+)
+const addTypeOpts = computed(() =>
+  Object.keys(leaveStore.leaveInfo?.leave_bonus_types ?? {}).map(k => ({ value: k, label: k }))
+)
 const yearOpts = ['2025', '2026', '2027'].map(y => ({ value: y, label: y }))
 
 const infoSearch = ref('')
 const infoBranch = ref('all')
 const infoBranchOpts = [{ value: 'all', label: 'Tất cả' }, ...['Hà Nội', 'Đà Nẵng', 'Hồ Chí Minh', 'Osaka'].map(b => ({ value: b, label: b }))]
 const filteredInfo = computed(() =>
-  LEAVE_INFO_ROWS.filter(r =>
-    (!infoSearch.value || r.name.toLowerCase().includes(infoSearch.value.toLowerCase())) &&
-    (infoBranch.value === 'all' || r.branch === infoBranch.value)
-  )
+  leaveStore.allUsersLeaveInfo
+    .filter(r =>
+      (!infoSearch.value || r.full_name.toLowerCase().includes(infoSearch.value.toLowerCase())) &&
+      (infoBranch.value === 'all' || r.branch_name === infoBranch.value)
+    )
+    .map(r => ({
+      name: r.full_name, email: r.email, branch: r.branch_name,
+      used: r.day_used, curr: r.day_remaining, prev: r.day_remaining_previous,
+      active: r.status === 1,
+    }))
 )
 
-const detailMember = computed(() => LEAVE_MEMBERS.find(m => m.id === detail.value?.memberId))
+const detailMember = computed(() => detail.value ? { name: detail.value.name, branch: detail.value.branch } : null)
 </script>
 
 <template>
@@ -180,7 +223,7 @@ const detailMember = computed(() => LEAVE_MEMBERS.find(m => m.id === detail.valu
             <label class="block text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">Tìm kiếm tên</label>
             <div class="relative">
               <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-              <input v-model="search" placeholder="Tìm kiếm…" class="w-full h-10 pl-9 pr-3 rounded-lg border border-border bg-card text-[13px] outline-none focus:border-primary/60 placeholder:text-muted-foreground/50" @input="page = 1">
+              <input v-model="search" placeholder="Tìm kiếm tên…" class="w-full h-10 pl-9 pr-3 rounded-lg border border-border bg-card text-[13px] outline-none focus:border-primary/60 placeholder:text-muted-foreground/50" @input="page = 1">
             </div>
           </div>
           <div>
@@ -201,50 +244,91 @@ const detailMember = computed(() => LEAVE_MEMBERS.find(m => m.id === detail.valu
         <MiniStat label="Chờ duyệt" :value="stats.pending" sublabel="Cần xử lý" accent="amber" :delay="40" />
         <MiniStat label="Đã duyệt" :value="stats.approved" sublabel="Trong hệ thống" accent="green" :delay="80" />
         <MiniStat label="Nghỉ trong tuần" :value="stats.onLeaveThisWeek" :sublabel="`${fmtVN(weekStart)} – ${fmtVN(addDaysHelper(weekStart,6))}`" accent="primary" :delay="120" />
-        <MiniStat label="Tổng nhân viên" :value="LEAVE_MEMBERS.length" sublabel="Đang theo dõi" accent="violet" :delay="160" />
+        <MiniStat label="Tổng đơn nghỉ" :value="leaveStore.pagination.total_row" sublabel="Trong hệ thống" accent="violet" :delay="160" />
       </div>
 
       <div class="card-surface overflow-hidden rise" style="animation-delay: 200ms">
-        <div class="flex items-center justify-between px-5 py-3 border-b border-border/70 bg-muted/20">
-          <div class="flex items-center gap-2">
-            <button class="h-8 w-8 rounded-lg border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors" @click="weekStart = addDaysHelper(weekStart, -7)">
-              <X :size="13" class="rotate-90" />
-            </button>
-            <span class="text-[13px] font-semibold font-mono tabular-nums px-2">{{ fmtSlash(weekStart) }} – {{ fmtSlash(addDaysHelper(weekStart, 6)) }}</span>
-            <button class="h-8 w-8 rounded-lg border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors" @click="weekStart = addDaysHelper(weekStart, 7)">
-              <X :size="13" class="-rotate-90" />
-            </button>
-            <button class="h-8 px-3 rounded-lg border border-border bg-card text-[12px] font-medium text-foreground/70 hover:text-primary hover:border-primary/50 transition-colors ml-1" @click="weekStart = '2026-06-02'">Tuần này</button>
+        <ErrorBanner
+          v-if="leaveStore.error"
+          :message="leaveStore.error"
+          @retry="leaveStore.fetchLeaveRequests()"
+        />
+        <template v-if="!leaveStore.error">
+          <div class="overflow-x-auto">
+            <table class="w-full text-[13px]" style="min-width: 700px">
+              <thead>
+                <tr class="thead-primary border-b border-border/70 text-[11px] uppercase tracking-wider font-semibold">
+                  <th class="text-left py-3 px-5">Nhân viên</th>
+                  <th class="text-left py-3 px-3">Chi nhánh</th>
+                  <th class="text-left py-3 px-3">Loại nghỉ</th>
+                  <th class="text-left py-3 px-3">Từ ngày</th>
+                  <th class="text-left py-3 px-3">Đến ngày</th>
+                  <th class="text-center py-3 px-3">Trạng thái</th>
+                  <th class="text-right py-3 px-5">Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                <SkeletonRow v-if="leaveStore.loading" :cols="7" :rows="5" />
+                <template v-else-if="filtered.length === 0">
+                  <tr>
+                    <td :colspan="7">
+                      <EmptyState :icon="FileX" title="Không có đơn xin nghỉ" description="Chưa có đơn nào trong khoảng thời gian này" />
+                    </td>
+                  </tr>
+                </template>
+                <tr
+                  v-else
+                  v-for="e in paged"
+                  :key="e.id"
+                  class="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors cursor-pointer"
+                  @click="detail = e"
+                >
+                  <td class="py-3 px-5">
+                    <div class="flex items-center gap-2.5">
+                      <Avatar :name="e.name" :size="30" />
+                      <span class="font-medium">{{ e.name }}</span>
+                    </div>
+                  </td>
+                  <td class="py-3 px-3 text-foreground/80">{{ e.branch }}</td>
+                  <td class="py-3 px-3">{{ e.type }}{{ e.half ? ' (nửa ngày)' : '' }}</td>
+                  <td class="py-3 px-3 font-mono text-[12px] text-muted-foreground">{{ e.from }}</td>
+                  <td class="py-3 px-3 font-mono text-[12px] text-muted-foreground">{{ e.to }}</td>
+                  <td class="py-3 px-3 text-center">
+                    <Badge :variant="LEAVE_STATUS_META[e.status].variant" dot>{{ LEAVE_STATUS_META[e.status].label }}</Badge>
+                  </td>
+                  <td class="py-3 px-5">
+                    <div class="flex items-center justify-end gap-1.5" @click.stop>
+                      <template v-if="e.status === 'pending'">
+                        <Btn variant="success" size="xs" @click="approve(e)">Duyệt</Btn>
+                        <Btn variant="ghost" size="xs" @click="reject(e)">Từ chối</Btn>
+                      </template>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <div class="hidden lg:flex items-center gap-3.5 text-[11.5px] text-muted-foreground flex-wrap">
-            <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded" style="background: hsl(var(--primary))" />Nghỉ cả ngày</span>
-            <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded" style="background: hsl(199 89% 48%)" />Nửa ngày</span>
-            <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded" style="background: hsl(160 60% 45%)" />Làm ở nhà</span>
-            <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded" style="background: hsl(231 60% 55%)" />Công tác</span>
-          </div>
-        </div>
 
-        <LeaveGrid :members="pagedMembers" :entries="entries" :week-start="weekStart" @select="detail = $event" />
-
-        <div class="flex items-center justify-between gap-4 flex-wrap px-5 py-3 border-t border-border/70 bg-muted/10">
-          <span class="text-[12px] text-muted-foreground font-mono tabular-nums">{{ fmtSlash(weekStart) }} – {{ fmtSlash(addDaysHelper(weekStart, 6)) }}</span>
-          <div class="flex items-center gap-2 text-[12px] text-muted-foreground">
-            <span>Trang {{ page }}/{{ totalPages }}</span>
-            <div class="flex items-center gap-1">
-              <button :disabled="page <= 1" class="h-7 w-7 rounded-md border border-border bg-card flex items-center justify-center text-muted-foreground disabled:opacity-40 hover:text-primary hover:border-primary/50 transition-colors" @click="page--">
-                <X :size="11" class="rotate-90" />
-              </button>
-              <button v-for="p in totalPages" :key="p"
-                :class="['h-7 min-w-7 px-2 rounded-md text-[12px] font-medium transition-colors', p === page ? 'text-white' : 'border border-border bg-card text-foreground/70 hover:border-primary/50']"
-                :style="p === page ? { background: 'hsl(var(--primary))' } : {}"
-                @click="page = p"
-              >{{ p }}</button>
-              <button :disabled="page >= totalPages" class="h-7 w-7 rounded-md border border-border bg-card flex items-center justify-center text-muted-foreground disabled:opacity-40 hover:text-primary hover:border-primary/50 transition-colors" @click="page++">
-                <X :size="11" class="-rotate-90" />
-              </button>
+          <div class="flex items-center justify-between gap-4 flex-wrap px-5 py-3 border-t border-border/70 bg-muted/10">
+            <span class="text-[12px] text-muted-foreground">Tổng: <span class="font-semibold text-foreground">{{ filtered.length }}</span> đơn</span>
+            <div v-if="totalPages > 1" class="flex items-center gap-2 text-[12px] text-muted-foreground">
+              <span>Trang {{ page }}/{{ totalPages }}</span>
+              <div class="flex items-center gap-1">
+                <button :disabled="page <= 1" class="h-7 w-7 rounded-md border border-border bg-card flex items-center justify-center text-muted-foreground disabled:opacity-40 hover:text-primary hover:border-primary/50 transition-colors" @click="page--">
+                  <X :size="11" class="rotate-90" />
+                </button>
+                <button v-for="p in totalPages" :key="p"
+                  :class="['h-7 min-w-7 px-2 rounded-md text-[12px] font-medium transition-colors', p === page ? 'text-white' : 'border border-border bg-card text-foreground/70 hover:border-primary/50']"
+                  :style="p === page ? { background: 'hsl(var(--primary))' } : {}"
+                  @click="page = p"
+                >{{ p }}</button>
+                <button :disabled="page >= totalPages" class="h-7 w-7 rounded-md border border-border bg-card flex items-center justify-center text-muted-foreground disabled:opacity-40 hover:text-primary hover:border-primary/50 transition-colors" @click="page++">
+                  <X :size="11" class="-rotate-90" />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </template>
       </div>
     </template>
 
@@ -254,7 +338,7 @@ const detailMember = computed(() => LEAVE_MEMBERS.find(m => m.id === detail.valu
         <h3 class="font-heading font-bold text-[17px] text-foreground mb-5">Tạo đơn xin nghỉ</h3>
         <div class="space-y-4">
           <div>
-            <label class="block text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">Nhân viên <span class="text-red-400">*</span></label>
+            <label class="block text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">Nhân viên</label>
             <Select v-model="createForm.member" :options="memberOpts" placeholder="— Chọn nhân viên —" style="width: 100%" />
           </div>
           <div>
@@ -264,11 +348,13 @@ const detailMember = computed(() => LEAVE_MEMBERS.find(m => m.id === detail.valu
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">Từ ngày <span class="text-red-400">*</span></label>
-              <input v-model="createForm.from" type="date" class="w-full h-10 px-3 rounded-lg border border-border bg-card text-[13px] outline-none focus:border-primary/60">
+              <input v-model="createForm.from" type="date" :class="['w-full h-10 px-3 rounded-lg border bg-card text-[13px] outline-none', createErrors.from ? 'border-red-500 focus:border-red-500' : 'border-border focus:border-primary/60']">
+              <p v-if="createErrors.from" class="text-red-500 text-[11px] mt-1">Vui lòng chọn ngày bắt đầu</p>
             </div>
             <div>
               <label class="block text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">Đến ngày <span class="text-red-400">*</span></label>
-              <input v-model="createForm.to" type="date" class="w-full h-10 px-3 rounded-lg border border-border bg-card text-[13px] outline-none focus:border-primary/60">
+              <input v-model="createForm.to" type="date" :class="['w-full h-10 px-3 rounded-lg border bg-card text-[13px] outline-none', createErrors.to ? 'border-red-500 focus:border-red-500' : 'border-border focus:border-primary/60']">
+              <p v-if="createErrors.to" class="text-red-500 text-[11px] mt-1">Vui lòng chọn ngày kết thúc</p>
             </div>
           </div>
           <label class="flex items-center gap-2.5 cursor-pointer select-none">
@@ -277,7 +363,8 @@ const detailMember = computed(() => LEAVE_MEMBERS.find(m => m.id === detail.valu
           </label>
           <div>
             <label class="block text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">Lý do <span class="text-red-400">*</span></label>
-            <textarea v-model="createForm.reason" rows="3" placeholder="Nhập lý do xin nghỉ…" class="w-full px-3 py-2 rounded-lg border border-border bg-card text-[13px] outline-none focus:border-primary/60 resize-none placeholder:text-muted-foreground/50" />
+            <textarea v-model="createForm.reason" rows="3" placeholder="Nhập lý do xin nghỉ…" :class="['w-full px-3 py-2 rounded-lg border bg-card text-[13px] outline-none resize-none placeholder:text-muted-foreground/50', createErrors.reason ? 'border-red-500 focus:border-red-500' : 'border-border focus:border-primary/60']" />
+            <p v-if="createErrors.reason" class="text-red-500 text-[11px] mt-1">Vui lòng nhập lý do</p>
           </div>
           <div class="pt-2 flex items-center justify-end gap-2">
             <Btn variant="outline" @click="tab = 'manage'">Huỷ</Btn>
@@ -370,12 +457,17 @@ const detailMember = computed(() => LEAVE_MEMBERS.find(m => m.id === detail.valu
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(r, i) in LEAVE_HISTORY_ROWS" :key="i" class="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors">
-              <td class="py-3 px-5 font-mono text-muted-foreground">{{ r.date }}</td>
-              <td class="py-3 px-3"><div class="flex items-center gap-2.5"><Avatar :name="r.name" :size="28" /><span class="font-medium">{{ r.name }}</span></div></td>
-              <td class="py-3 px-3 text-center"><span :class="['font-bold tabular-nums', r.amount.startsWith('-') ? 'text-red-500' : 'text-emerald-600']">{{ r.amount }}</span></td>
-              <td class="py-3 px-3 text-foreground/85">{{ r.reason }}</td>
-              <td class="py-3 px-5 text-muted-foreground">{{ r.by }}</td>
+            <tr v-for="b in leaveStore.bonuses" :key="b.id" class="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors">
+              <td class="py-3 px-5 font-mono text-muted-foreground">{{ new Date(b.created_at).toLocaleDateString('vi-VN') }}</td>
+              <td class="py-3 px-3"><div class="flex items-center gap-2.5"><Avatar :name="b.full_name" :size="28" /><span class="font-medium">{{ b.full_name }}</span></div></td>
+              <td class="py-3 px-3 text-center"><span :class="['font-bold tabular-nums', b.hour < 0 ? 'text-red-500' : 'text-emerald-600']">{{ b.hour > 0 ? '+' + b.hour : b.hour }}</span></td>
+              <td class="py-3 px-3 text-foreground/85">{{ b.reason }}</td>
+              <td class="py-3 px-5 text-muted-foreground">{{ b.created_by }}</td>
+            </tr>
+            <tr v-if="leaveStore.bonuses.length === 0">
+              <td colspan="5">
+                <EmptyState :icon="FileX" title="Chưa có lịch sử thêm ngày phép" />
+              </td>
             </tr>
           </tbody>
         </table>
@@ -399,7 +491,7 @@ const detailMember = computed(() => LEAVE_MEMBERS.find(m => m.id === detail.valu
           </div>
           <div class="flex-1 overflow-y-auto scrollbar-thin p-5 space-y-5">
             <div class="flex items-center gap-2 flex-wrap">
-              <Badge :variant="LEAVE_TYPE_META[detail.type].variant">{{ detail.type }}{{ detail.half ? ' (nửa ngày)' : '' }}</Badge>
+              <Badge variant="primary">{{ detail.type }}{{ detail.half ? ' (nửa ngày)' : '' }}</Badge>
               <Badge :variant="LEAVE_STATUS_META[detail.status].variant" dot>{{ LEAVE_STATUS_META[detail.status].label }}</Badge>
             </div>
             <div class="card-surface p-4 grid grid-cols-2 gap-4">
