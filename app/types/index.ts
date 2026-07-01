@@ -50,6 +50,22 @@ export interface Pagination {
   row_per_page: number
 }
 
+// ── HRM: Member display types ─────────────────────────────────────────────
+export type MemberStatus = 'active' | 'onboarding' | 'leave' | 'inactive'
+
+export interface Member {
+  id: number
+  name: string
+  email: string
+  branch: string
+  role: string
+  phone: string
+  jp: string
+  rank: string
+  join: string
+  status: MemberStatus
+}
+
 // ── HRM: Member ───────────────────────────────────────────────────────────
 export interface MemberRow {
   id: number

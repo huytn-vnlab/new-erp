@@ -10,13 +10,27 @@ import Select from '~/components/base/Select.vue'
 import Pagination from '~/components/base/Pagination.vue'
 import Badge from '~/components/base/Badge.vue'
 import Avatar from '~/components/base/Avatar.vue'
+import SkeletonRow from '~/components/base/SkeletonRow.vue'
+import EmptyState from '~/components/base/EmptyState.vue'
+import ErrorBanner from '~/components/base/ErrorBanner.vue'
 import InviteModal from '~/components/member/InviteModal.vue'
 import MemberDetail from '~/components/member/MemberDetail.vue'
 import { Building2, FileText, UserPlus, Users } from 'lucide-vue-next'
-import { MEMBERS, MEMBER_STATUS_META, BRANCHES, INVITATIONS, RANK_COLOR, type Member, type Invitation } from '~/mocks/members'
 import { useMemberStore } from '~/stores/member'
+import type { Member } from '~/types'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
+
+type Invitation = { email: string; sent: string; by: string; status: 'pending'; role: string; branch: string }
+
+const MEMBER_STATUS_META: Record<string, { label: string; variant: 'green' | 'amber' | 'red' | 'gray' }> = {
+  active:     { label: 'Đang làm việc', variant: 'green' },
+  onboarding: { label: 'Đang onboard',  variant: 'amber' },
+  leave:      { label: 'Đang nghỉ',     variant: 'amber' },
+  inactive:   { label: 'Đã nghỉ việc',  variant: 'gray' },
+}
+
+const RANK_COLOR: Record<string, string> = { S: '#0ea5e9', A: '#22c55e', B: '#a3a3a3', C: '#eab308' }
 
 const store = useMemberStore()
 const search = ref('')
@@ -29,12 +43,11 @@ const perPage = 10
 const openMember = ref<Member | null>(null)
 const drawerOpen = ref(false)
 const inviteOpen = ref(false)
-const invitations = ref<Invitation[]>([...INVITATIONS])
+const invitations = ref<Invitation[]>([])
 const { show } = useToast()
 
-// Use API data when available, fall back to mock
-const allMembers = computed(() => store.members.length ? store.members : MEMBERS)
-const allBranches = computed(() => store.branches.length ? store.branches.map(b => b.name) : BRANCHES)
+const allMembers = computed(() => store.members)
+const allBranches = computed(() => store.branches.map(b => b.name))
 
 onMounted(() => {
   store.fetchMembers()
@@ -68,9 +81,19 @@ const tabItems = computed(() => [
 ])
 
 function openDetail(m: Member) { openMember.value = m; drawerOpen.value = true }
-function onInvited(inv: { email: string; sent: string; by: string; status: 'pending' }) {
+
+async function onInvited(inv: { email: string; sent: string; by: string; status: 'pending' }) {
   invitations.value = [{ ...inv, role: '—', branch: '—' }, ...invitations.value]
+  await store.inviteUser({ email: inv.email, branch_id: 0, role_id: 0 })
   show('Lời mời đã được gửi tới ' + inv.email + '!')
+}
+
+async function onDelete(m: Member) {
+  const result = await store.deleteUser(m.id)
+  if (result?.ok) {
+    show('Đã xóa thành viên ' + m.name)
+    store.fetchMembers()
+  }
 }
 </script>
 
@@ -99,6 +122,8 @@ function onInvited(inv: { email: string; sent: string; by: string; status: 'pend
         <span class="text-[12px] text-muted-foreground">{{ filtered.length }} / {{ allMembers.length }} kết quả</span>
       </FilterBar>
 
+      <ErrorBanner v-if="store.error" :message="store.error" @retry="store.fetchMembers()" />
+
       <div class="card-surface overflow-hidden rise" style="animation-delay: 180ms">
         <div class="overflow-x-auto">
           <table class="w-full text-[13px]">
@@ -112,46 +137,59 @@ function onInvited(inv: { email: string; sent: string; by: string; status: 'pend
                 <th class="text-center py-3 px-3">Rank</th>
                 <th class="text-center py-3 px-3">Trạng thái</th>
                 <th class="text-right py-3 px-5">Vào CT</th>
+                <th class="py-3 px-3"></th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="m in paged" :key="m.id" class="border-b border-border/60 last:border-0 hover:bg-muted/30 cursor-pointer transition-colors" @click="openDetail(m)">
-                <td class="py-3 px-5">
-                  <div class="flex items-center gap-3">
-                    <Avatar :name="m.name" :size="36" />
-                    <div class="min-w-0">
-                      <p class="font-semibold text-foreground">{{ m.name }}</p>
-                      <p class="text-[11.5px] text-muted-foreground">#{{ String(m.id).padStart(4, '0') }}</p>
+              <SkeletonRow v-if="store.loading" :cols="6" :rows="5" />
+              <template v-else>
+                <tr v-for="m in paged" :key="m.id" class="border-b border-border/60 last:border-0 hover:bg-muted/30 cursor-pointer transition-colors" @click="openDetail(m)">
+                  <td class="py-3 px-5">
+                    <div class="flex items-center gap-3">
+                      <Avatar :name="m.name" :size="36" />
+                      <div class="min-w-0">
+                        <p class="font-semibold text-foreground">{{ m.name }}</p>
+                        <p class="text-[11.5px] text-muted-foreground">#{{ String(m.id).padStart(4, '0') }}</p>
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td class="py-3 px-3"><span class="inline-flex items-center gap-1.5 text-foreground/80"><Building2 :size="12" class="text-muted-foreground" />{{ m.branch }}</span></td>
-                <td class="py-3 px-3 text-foreground/80">{{ m.role }}</td>
-                <td class="py-3 px-3">
-                  <p class="text-foreground/85 truncate max-w-[200px]">{{ m.email }}</p>
-                  <p class="text-[11.5px] text-muted-foreground font-mono">{{ m.phone }}</p>
-                </td>
-                <td class="py-3 px-3 text-center">
-                  <span v-if="m.jp === '—'" class="text-muted-foreground">—</span>
-                  <Badge v-else :variant="m.jp === 'N1' || m.jp === 'N2' ? 'primary' : 'gray'">{{ m.jp }}</Badge>
-                </td>
-                <td class="py-3 px-3 text-center">
-                  <span v-if="m.rank === '—'" class="text-muted-foreground">—</span>
-                  <span v-else class="inline-flex items-center justify-center w-6 h-6 rounded-md text-[11px] font-bold text-white" :style="{ background: RANK_COLOR[m.rank] ?? '#a3a3a3' }">{{ m.rank }}</span>
-                </td>
-                <td class="py-3 px-3 text-center"><Badge :variant="MEMBER_STATUS_META[m.status].variant" dot>{{ MEMBER_STATUS_META[m.status].label }}</Badge></td>
-                <td class="py-3 px-5 text-right font-mono text-muted-foreground">{{ m.join }}</td>
-              </tr>
-              <tr v-if="paged.length === 0">
-                <td colspan="8" class="py-16 text-center text-muted-foreground">
-                  <Users :size="36" class="mx-auto mb-2 opacity-30" />
-                  <p class="text-[13px]">Không tìm thấy nhân viên phù hợp</p>
-                </td>
-              </tr>
+                  </td>
+                  <td class="py-3 px-3"><span class="inline-flex items-center gap-1.5 text-foreground/80"><Building2 :size="12" class="text-muted-foreground" />{{ m.branch }}</span></td>
+                  <td class="py-3 px-3 text-foreground/80">{{ m.role }}</td>
+                  <td class="py-3 px-3">
+                    <p class="text-foreground/85 truncate max-w-[200px]">{{ m.email }}</p>
+                    <p class="text-[11.5px] text-muted-foreground font-mono">{{ m.phone }}</p>
+                  </td>
+                  <td class="py-3 px-3 text-center">
+                    <span v-if="m.jp === '—'" class="text-muted-foreground">—</span>
+                    <Badge v-else :variant="m.jp === 'N1' || m.jp === 'N2' ? 'primary' : 'gray'">{{ m.jp }}</Badge>
+                  </td>
+                  <td class="py-3 px-3 text-center">
+                    <span v-if="m.rank === '—'" class="text-muted-foreground">—</span>
+                    <span v-else class="inline-flex items-center justify-center w-6 h-6 rounded-md text-[11px] font-bold text-white" :style="{ background: RANK_COLOR[m.rank] ?? '#a3a3a3' }">{{ m.rank }}</span>
+                  </td>
+                  <td class="py-3 px-3 text-center"><Badge :variant="MEMBER_STATUS_META[m.status]?.variant ?? 'gray'" dot>{{ MEMBER_STATUS_META[m.status]?.label ?? m.status }}</Badge></td>
+                  <td class="py-3 px-5 text-right font-mono text-muted-foreground">{{ m.join }}</td>
+                  <td class="py-3 px-3 text-right" @click.stop>
+                    <Btn variant="ghost" size="xs" @click.stop="onDelete(m)">Xóa</Btn>
+                  </td>
+                </tr>
+                <tr v-if="paged.length === 0">
+                  <td colspan="9">
+                    <EmptyState :icon="Users" title="Không tìm thấy nhân viên phù hợp" description="Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm" />
+                  </td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </div>
-        <Pagination v-if="filtered.length > perPage" :page="page" :total="filtered.length" :per-page="perPage" @change="(p) => page = p" />
+        <Pagination
+          v-if="store.pagination.total_row > store.pagination.row_per_page"
+          data-test="pagination"
+          :page="store.pagination.current_page"
+          :total="store.pagination.total_row"
+          :per-page="store.pagination.row_per_page"
+          @change="(p) => store.fetchMembers({ current_page: p })"
+        />
       </div>
     </template>
 

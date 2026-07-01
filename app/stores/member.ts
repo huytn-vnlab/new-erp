@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
-import type { MemberRow, MemberDetail, BranchItem, JobTitleItem, Pagination } from '~/types'
-import type { Member, MemberStatus } from '~/mocks/members'
+import type { MemberRow, MemberDetail, BranchItem, JobTitleItem, Member, MemberStatus, Pagination } from '~/types'
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -69,8 +68,8 @@ export const useMemberStore = defineStore('member', () => {
         _raw.value = res.data.profiles ?? []
         pagination.value = res.data.pagination ?? pagination.value
       }
-    } catch (e) {
-      error.value = (e as Error).message
+    } catch {
+      error.value = 'Không thể tải dữ liệu. Vui lòng thử lại.'
     } finally {
       loading.value = false
     }
@@ -96,11 +95,13 @@ export const useMemberStore = defineStore('member', () => {
   }
 
   async function inviteUser(payload: { email: string; branch_id: number; role_id: number }) {
-    return post('/api/register/inviteUser', payload)
+    const res = await post('/api/register/inviteUser', payload)
+    return { ok: res.status === 1, message: res.message }
   }
 
   async function deleteUser(userId: number) {
-    return post('/api/user/delete-user', { user_id: userId })
+    const res = await post('/api/user/delete-user', { user_id: userId })
+    return { ok: res.status === 1, message: res.message }
   }
 
   return {

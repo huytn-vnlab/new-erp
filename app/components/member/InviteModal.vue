@@ -63,14 +63,14 @@ function send() {
           <button class="h-4 w-4 rounded flex items-center justify-center hover:bg-primary/20 transition-colors ml-0.5" @click="removeEmail(em)"><X :size="9" /></button>
         </span>
         <input
-          type="email" :value="input" :placeholder="emails.length === 0 ? 'ten@congty.com, nhấn Enter để thêm tiếp…' : ''"
+          type="email" aria-label="email" :value="input" :placeholder="emails.length === 0 ? 'ten@congty.com, nhấn Enter để thêm tiếp…' : ''"
           class="flex-1 min-w-[180px] bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground/50 py-0.5"
           @input="input = ($event.target as HTMLInputElement).value; error = ''"
           @keydown="onKeydown"
           @blur="input.trim() && addEmail(input)"
         >
       </div>
-      <p v-if="error" class="text-[11.5px] text-red-400 mt-1.5">{{ error }}</p>
+      <p v-if="error" class="text-[11.5px] text-red-500 mt-1.5">{{ error }}</p>
       <p v-else class="text-[11.5px] text-muted-foreground mt-2">
         <template v-if="emails.length > 0"><span class="font-semibold text-foreground">{{ emails.length }}</span> email · Link có hiệu lực <strong>7 ngày</strong></template>
         <template v-else>Nhập email rồi nhấn Enter. Có thể mời nhiều người cùng lúc.</template>
