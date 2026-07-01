@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { LogIn, LogOut, Check, FileText, Clock, AlertCircle, TrendingUp } from 'lucide-vue-next'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { LogIn, LogOut, Check, FileText, Clock, AlertCircle } from 'lucide-vue-next'
 import PageHeader from '~/components/layout/PageHeader.vue'
 import Btn from '~/components/base/Button.vue'
 import MiniStat from '~/components/base/MiniStat.vue'
@@ -8,8 +8,11 @@ import Select from '~/components/base/Select.vue'
 import Avatar from '~/components/base/Avatar.vue'
 import SectionCard from '~/components/home/SectionCard.vue'
 import TimekeepingCalendar from '~/components/timekeeping/TimekeepingCalendar.vue'
+import SkeletonRow from '~/components/base/SkeletonRow.vue'
+import EmptyState from '~/components/base/EmptyState.vue'
+import ErrorBanner from '~/components/base/ErrorBanner.vue'
 import {
-  TIMEKEEPING_HISTORY, MONTH_OPTIONS, TK_STATUS_META,
+  MONTH_OPTIONS, TK_STATUS_META,
   type TKStatus, type TimekeepingDay,
 } from '~/mocks/timekeeping'
 import type { TimekeepingRow } from '~/types'
@@ -25,6 +28,11 @@ onMounted(() => {
 })
 
 const selectedMonth = ref('2026-05')
+
+watch(selectedMonth, (month) => {
+  tkStore.fetchAll({ month })
+  tkStore.fetchMine({ month })
+})
 const activeTab = ref<'mine' | 'team'>('mine')
 
 // Derive check-in state from store (same pattern as Banner.vue)
@@ -113,13 +121,10 @@ const parsedMonth = computed(() => {
 
 const historyForMonth = computed((): TimekeepingDay[] => {
   const [y, m] = selectedMonth.value.split('-')
-  if (tkStore.rows.length > 0) {
-    const prefix = `${y}-${m}`
-    return tkStore.rows
-      .filter(r => r.date?.startsWith(prefix))
-      .map(mapTkRow)
-  }
-  return TIMEKEEPING_HISTORY.filter(d => d.date.slice(3, 10) === `${m}/${y}`)
+  const prefix = `${y}-${m}`
+  return tkStore.rows
+    .filter(r => r.date?.startsWith(prefix))
+    .map(mapTkRow)
 })
 
 const stats = computed(() => {
@@ -166,17 +171,7 @@ const weekDays = computed(() =>
 const weekHours = computed(() => weekDays.value.reduce((s, d) => s + (d.hist?.hours ?? 0), 0))
 
 type DeptRow = { name: string; workdays: number; totalHours: number; lateCount: number; leaveDays: number }
-const DEPT_HISTORY_MOCK: DeptRow[] = [
-  { name: 'Nguyễn Văn An',   workdays: 18, totalHours: 154, lateCount: 0, leaveDays: 2 },
-  { name: 'Trần Thị Mai',     workdays: 17, totalHours: 149, lateCount: 1, leaveDays: 1 },
-  { name: 'Lê Quang Huy',     workdays: 19, totalHours: 161, lateCount: 0, leaveDays: 0 },
-  { name: 'Vũ Thị Lan',       workdays: 16, totalHours: 138, lateCount: 2, leaveDays: 3 },
-  { name: 'Phạm Thu Hà',      workdays: 18, totalHours: 155, lateCount: 1, leaveDays: 1 },
-  { name: 'Bùi Đức Thành',    workdays: 20, totalHours: 168, lateCount: 0, leaveDays: 0 },
-  { name: 'Hoàng Đức Thành',  workdays: 15, totalHours: 130, lateCount: 3, leaveDays: 4 },
-]
 const deptHistory = computed((): DeptRow[] => {
-  if (tkStore.rows.length === 0) return DEPT_HISTORY_MOCK
   const map = new Map<string, DeptRow>()
   for (const r of tkStore.rows) {
     const name = r.full_name ?? `User ${r.user_id}`
@@ -327,6 +322,9 @@ const deptHistory = computed((): DeptRow[] => {
       </div>
     </div>
 
+    <!-- Error banner (shown above both tabs) -->
+    <ErrorBanner v-if="tkStore.error" :message="tkStore.error" @retry="tkStore.fetchAll()" />
+
     <!-- MINE -->
     <template v-if="activeTab === 'mine'">
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -360,44 +358,47 @@ const deptHistory = computed((): DeptRow[] => {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr
-                    v-for="h in [...historyForMonth].reverse()" :key="h.date"
-                    class="border-b border-border/60 last:border-0 hover:bg-muted/30 transition-colors"
-                  >
-                    <td class="py-2.5 px-5">
-                      <span class="font-mono font-medium text-foreground">{{ h.date }}</span>
-                      <p class="text-[11px] text-muted-foreground">{{ ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][h.weekday] }}</p>
-                    </td>
-                    <td class="py-2.5 px-3 font-mono tabular-nums">
-                      <span v-if="h.in">{{ h.in }}</span>
-                      <span v-else class="text-muted-foreground">—</span>
-                    </td>
-                    <td class="py-2.5 px-3 font-mono tabular-nums">
-                      <span v-if="h.out">{{ h.out }}</span>
-                      <span v-else class="text-muted-foreground">—</span>
-                    </td>
-                    <td class="py-2.5 px-3 text-right font-semibold tabular-nums">
-                      <span v-if="h.hours">{{ h.hours }}h</span>
-                      <span v-else class="text-muted-foreground font-normal">—</span>
-                    </td>
-                    <td class="py-2.5 px-3 text-center">
-                      <span
-                        class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium font-mono"
-                        :style="{ background: TK_STATUS_META[h.status].bg, color: TK_STATUS_META[h.status].color }"
-                      >
-                        <span class="h-1.5 w-1.5 rounded-full" :style="{ background: TK_STATUS_META[h.status].color }" />
-                        {{ TK_STATUS_META[h.status].label }}
-                      </span>
-                    </td>
-                    <td class="py-2.5 px-5 text-muted-foreground text-[12px]">
-                      {{ h.note || ((h.late ?? 0) > 0 ? `Muộn ${h.late} phút` : '') }}
-                    </td>
-                  </tr>
-                  <tr v-if="historyForMonth.length === 0">
-                    <td colspan="6" class="py-12 text-center text-muted-foreground">
-                      <TrendingUp :size="30" class="mx-auto mb-2 opacity-30" />Chưa có dữ liệu chấm công
-                    </td>
-                  </tr>
+                  <SkeletonRow v-if="tkStore.loading" :cols="6" :rows="5" />
+                  <template v-else>
+                    <tr
+                      v-for="h in [...historyForMonth].reverse()" :key="h.date"
+                      class="border-b border-border/60 last:border-0 hover:bg-muted/30 transition-colors"
+                    >
+                      <td class="py-2.5 px-5">
+                        <span class="font-mono font-medium text-foreground">{{ h.date }}</span>
+                        <p class="text-[11px] text-muted-foreground">{{ ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][h.weekday] }}</p>
+                      </td>
+                      <td class="py-2.5 px-3 font-mono tabular-nums">
+                        <span v-if="h.in">{{ h.in }}</span>
+                        <span v-else class="text-muted-foreground">—</span>
+                      </td>
+                      <td class="py-2.5 px-3 font-mono tabular-nums">
+                        <span v-if="h.out">{{ h.out }}</span>
+                        <span v-else class="text-muted-foreground">—</span>
+                      </td>
+                      <td class="py-2.5 px-3 text-right font-semibold tabular-nums">
+                        <span v-if="h.hours">{{ h.hours }}h</span>
+                        <span v-else class="text-muted-foreground font-normal">—</span>
+                      </td>
+                      <td class="py-2.5 px-3 text-center">
+                        <span
+                          class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium font-mono"
+                          :style="{ background: TK_STATUS_META[h.status].bg, color: TK_STATUS_META[h.status].color }"
+                        >
+                          <span class="h-1.5 w-1.5 rounded-full" :style="{ background: TK_STATUS_META[h.status].color }" />
+                          {{ TK_STATUS_META[h.status].label }}
+                        </span>
+                      </td>
+                      <td class="py-2.5 px-5 text-muted-foreground text-[12px]">
+                        {{ h.note || ((h.late ?? 0) > 0 ? `Muộn ${h.late} phút` : '') }}
+                      </td>
+                    </tr>
+                    <tr v-if="historyForMonth.length === 0">
+                      <td colspan="6">
+                        <EmptyState :icon="Clock" title="Không có dữ liệu chấm công" description="Chưa có bản ghi trong tháng này" />
+                      </td>
+                    </tr>
+                  </template>
                 </tbody>
               </table>
             </div>
@@ -422,6 +423,8 @@ const deptHistory = computed((): DeptRow[] => {
               </tr>
             </thead>
             <tbody>
+              <SkeletonRow v-if="tkStore.loading" :cols="6" :rows="5" />
+              <template v-else>
               <tr v-for="(m, i) in deptHistory" :key="i" class="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors">
                 <td class="py-3 px-5">
                   <div class="flex items-center gap-2.5">
@@ -453,11 +456,17 @@ const deptHistory = computed((): DeptRow[] => {
                   </span>
                 </td>
               </tr>
+              <tr v-if="deptHistory.length === 0">
+                <td colspan="6">
+                  <EmptyState :icon="Clock" title="Không có dữ liệu chấm công" description="Chưa có bản ghi trong tháng này" />
+                </td>
+              </tr>
+              </template>
             </tbody>
           </table>
         </div>
         <div class="px-5 py-3 border-t border-border/70 bg-muted/10 text-[12.5px] text-muted-foreground">
-          {{ MONTH_OPTIONS.find(m => m.value === selectedMonth)?.label }} · <span class="font-semibold text-foreground">{{ deptHistory.value.length }}</span> thành viên
+          {{ MONTH_OPTIONS.find(m => m.value === selectedMonth)?.label }} · <span class="font-semibold text-foreground">{{ deptHistory.length }}</span> thành viên
         </div>
       </div>
     </template>

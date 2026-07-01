@@ -19,6 +19,7 @@ export const useTimekeepingStore = defineStore('timekeeping', () => {
   const today = ref<TkToday | null>(null)
   const pagination = ref<Pagination>({ current_page: 1, total_row: 0, row_per_page: 31 })
   const loading = ref(false)
+  const error = ref<string | null>(null)
 
   async function fetchToday() {
     const res = await post<TkToday>('/api/timekeeping/get-timekeeping-today', {})
@@ -32,6 +33,7 @@ export const useTimekeepingStore = defineStore('timekeeping', () => {
     current_page?: number
   } = {}) {
     loading.value = true
+    error.value = null
     try {
       const res = await post<TkListResponse>('/api/timekeeping/get-all-timekeeping', {
         month: params.month,
@@ -43,7 +45,11 @@ export const useTimekeepingStore = defineStore('timekeeping', () => {
       if (res.status === 1 && res.data) {
         rows.value = res.data.timekeepings ?? []
         pagination.value = res.data.pagination ?? pagination.value
+      } else {
+        error.value = res.message || 'Không thể tải dữ liệu chấm công.'
       }
+    } catch {
+      error.value = 'Không thể tải dữ liệu. Vui lòng thử lại.'
     } finally {
       loading.value = false
     }
@@ -51,6 +57,7 @@ export const useTimekeepingStore = defineStore('timekeeping', () => {
 
   async function fetchMine(params: { month?: string; current_page?: number } = {}) {
     loading.value = true
+    error.value = null
     try {
       const res = await post<TkListResponse>('/api/timekeeping/get-all-timekeeping-user', {
         month: params.month,
@@ -59,7 +66,11 @@ export const useTimekeepingStore = defineStore('timekeeping', () => {
       if (res.status === 1 && res.data) {
         rows.value = res.data.timekeepings ?? []
         pagination.value = res.data.pagination ?? pagination.value
+      } else {
+        error.value = res.message || 'Không thể tải dữ liệu chấm công.'
       }
+    } catch {
+      error.value = 'Không thể tải dữ liệu. Vui lòng thử lại.'
     } finally {
       loading.value = false
     }
@@ -74,7 +85,7 @@ export const useTimekeepingStore = defineStore('timekeeping', () => {
   }
 
   return {
-    rows, today, pagination, loading,
+    rows, today, pagination, loading, error,
     fetchToday, fetchAll, fetchMine, checkIn, checkOut,
   }
 })
