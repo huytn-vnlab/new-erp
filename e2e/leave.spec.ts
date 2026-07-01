@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { mockAuth } from './helpers/auth'
 import {
-  mockApi, mockApiEmpty, mockApiError,
+  mockApi, mockApiError,
   MOCK_LEAVE_REQUEST, MOCK_LEAVE_INFO, MOCK_PAGINATION,
 } from './helpers/fixtures'
 
@@ -93,7 +93,10 @@ test.describe('Leave — approve & reject', () => {
     await mockApi(page, LEAVE_ROUTES.updateStatus, {})
     await page.goto('/hrm/leave')
     await expect(page.getByText('Nguyễn Văn A')).toBeVisible()
-    await page.getByRole('button', { name: /duyệt/i }).first().click()
+    // Click the entry cell in the LeaveGrid to open the detail drawer
+    await page.locator('tr:has-text("Nguyễn Văn A") td button').first().click()
+    // Approve from the drawer (force bypasses the floating Tweaks panel overlay)
+    await page.getByRole('button', { name: /duyệt đơn/i }).click({ force: true })
     await expect(page.getByText(/đã duyệt/i)).toBeVisible()
   })
 
@@ -101,6 +104,10 @@ test.describe('Leave — approve & reject', () => {
     await setupLeave(page)
     await mockApi(page, LEAVE_ROUTES.updateStatus, {})
     await page.goto('/hrm/leave')
+    await expect(page.getByText('Nguyễn Văn A')).toBeVisible()
+    // Click the entry cell in the LeaveGrid to open the detail drawer
+    await page.locator('tr:has-text("Nguyễn Văn A") td button').first().click()
+    // Reject from the drawer
     await page.getByRole('button', { name: /từ chối/i }).first().click()
     await expect(page.getByText(/từ chối/i)).toBeVisible()
   })
@@ -117,7 +124,7 @@ test.describe('Leave — validation', () => {
 })
 
 test.describe('Leave — filter', () => {
-  test('filter by search triggers API re-fetch', async ({ page }) => {
+  test('filter by name hides non-matching rows', async ({ page }) => {
     await setupLeave(page)
     await page.goto('/hrm/leave')
     await expect(page.getByText('Nguyễn Văn A')).toBeVisible()

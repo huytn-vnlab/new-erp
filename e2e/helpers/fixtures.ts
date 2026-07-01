@@ -23,10 +23,17 @@ export async function mockApiError(page: Page, urlPattern: string): Promise<void
 
 export const MOCK_PAGINATION = { current_page: 1, total_row: 1, row_per_page: 20 }
 
+// Use the current week's Monday so the entry always appears in the LeaveGrid calendar view
+const _today = new Date()
+const _dayOfWeek = (_today.getDay() + 6) % 7
+const _monday = new Date(_today)
+_monday.setDate(_today.getDate() - _dayOfWeek)
+const _mondayISO = _monday.toISOString().slice(0, 10)
+
 export const MOCK_LEAVE_REQUEST = {
   id: 1, user_id: 1, full_name: 'Nguyễn Văn A', avatar: null,
   branch: 'Hà Nội', leave_request_type: 'Nghỉ cả ngày',
-  datetime_leave_from: '2026-06-01', datetime_leave_to: '2026-06-01',
+  datetime_leave_from: _mondayISO, datetime_leave_to: _mondayISO,
   reason: 'Cá nhân', status: 1, created_at: '2026-05-30',
 }
 

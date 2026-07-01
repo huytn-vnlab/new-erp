@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Plus, X, Search, CalendarCheck, FileX } from 'lucide-vue-next'
+import { Plus, X, Search, CalendarCheck, FileX, ChevronRight } from 'lucide-vue-next'
+import LeaveGrid from '~/components/leave/LeaveGrid.vue'
+import type { LeaveEntry as GridEntry, LeaveMember, LeaveType } from '~/mocks/leave'
+import { LEAVE_TYPES } from '~/mocks/leave'
 import PageHeader from '~/components/layout/PageHeader.vue'
 import Btn from '~/components/base/Button.vue'
 import MiniStat from '~/components/base/MiniStat.vue'
@@ -55,7 +58,8 @@ function mapLeaveRequest(r: LeaveRequest): LeaveEntry {
 }
 
 const tab = ref<'manage' | 'create' | 'info' | 'history'>('manage')
-const weekStart = ref(new Date().toISOString().slice(0, 10))
+const mondayOf = (iso: string) => { const d = new Date(iso); const day = (d.getDay() + 6) % 7; d.setDate(d.getDate() - day); return d.toISOString().slice(0, 10) }
+const weekStart = ref(mondayOf(new Date().toISOString().slice(0, 10)))
 const search = ref('')
 const fromDate = ref('')
 const toDate = ref('')
@@ -94,15 +98,47 @@ const stats = computed(() => ({
   ).size,
 }))
 
-const filtered = computed(() =>
-  entries.value.filter(e =>
-    !search.value || e.name.toLowerCase().includes(search.value.toLowerCase())
-  )
+const validLeaveTypeSet = new Set<string>(LEAVE_TYPES)
+const gridEntries = computed<GridEntry[]>(() =>
+  leaveStore.requests.map(r => ({
+    id: r.id,
+    memberId: r.user_id,
+    type: (validLeaveTypeSet.has(r.leave_request_type) ? r.leave_request_type : 'Khác') as LeaveType,
+    from: r.datetime_leave_from?.slice(0, 10) ?? '',
+    to: r.datetime_leave_to?.slice(0, 10) ?? '',
+    status: (LEAVE_STATUS_NUM_MAP[r.status] ?? 'pending') as GridEntry['status'],
+    reason: r.reason ?? '',
+    half: false,
+  }))
 )
-const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / PER_PAGE)))
-const paged = computed(() =>
-  filtered.value.slice((page.value - 1) * PER_PAGE, page.value * PER_PAGE)
+const gridMembers = computed<LeaveMember[]>(() => {
+  const seen = new Set<number>()
+  return leaveStore.requests
+    .filter(r => { if (seen.has(r.user_id)) return false; seen.add(r.user_id); return true })
+    .map(r => ({ id: r.user_id, name: r.full_name ?? '', branch: r.branch ?? '' }))
+})
+const filteredGridMembers = computed(() =>
+  gridMembers.value.filter(m => !search.value || m.name.toLowerCase().includes(search.value.toLowerCase()))
 )
+const gridTotalPages = computed(() => Math.max(1, Math.ceil(filteredGridMembers.value.length / PER_PAGE)))
+const pagedGridMembers = computed(() =>
+  filteredGridMembers.value.slice((page.value - 1) * PER_PAGE, page.value * PER_PAGE)
+)
+function onGridSelect(gridEntry: GridEntry) {
+  const member = gridMembers.value.find(m => m.id === gridEntry.memberId)
+  detail.value = {
+    id: gridEntry.id,
+    memberId: gridEntry.memberId,
+    name: member?.name ?? '',
+    branch: member?.branch ?? '',
+    type: gridEntry.type,
+    from: gridEntry.from,
+    to: gridEntry.to,
+    status: gridEntry.status,
+    reason: gridEntry.reason,
+    half: gridEntry.half,
+  }
+}
 
 async function approve(e: LeaveEntry) {
   const result = await leaveStore.updateStatus(e.id, 2)
@@ -111,7 +147,7 @@ async function approve(e: LeaveEntry) {
 }
 async function reject(e: LeaveEntry) {
   const result = await leaveStore.updateStatus(e.id, 3)
-  show(result.ok ? 'Đã từ chối đơn nghỉ.' : result.message, result.ok ? 'error' : 'error')
+  show(result.ok ? 'Đã từ chối đơn nghỉ.' : result.message, result.ok ? 'success' : 'error')
   if (result.ok) await leaveStore.fetchLeaveRequests()
 }
 async function submitCreate() {
@@ -254,76 +290,69 @@ const detailMember = computed(() => detail.value ? { name: detail.value.name, br
           @retry="leaveStore.fetchLeaveRequests()"
         />
         <template v-if="!leaveStore.error">
-          <div class="overflow-x-auto">
-            <table class="w-full text-[13px]" style="min-width: 700px">
-              <thead>
-                <tr class="thead-primary border-b border-border/70 text-[11px] uppercase tracking-wider font-semibold">
-                  <th class="text-left py-3 px-5">Nhân viên</th>
-                  <th class="text-left py-3 px-3">Chi nhánh</th>
-                  <th class="text-left py-3 px-3">Loại nghỉ</th>
-                  <th class="text-left py-3 px-3">Từ ngày</th>
-                  <th class="text-left py-3 px-3">Đến ngày</th>
-                  <th class="text-center py-3 px-3">Trạng thái</th>
-                  <th class="text-right py-3 px-5">Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                <SkeletonRow v-if="leaveStore.loading" :cols="7" :rows="5" />
-                <template v-else-if="filtered.length === 0">
-                  <tr>
-                    <td :colspan="7">
-                      <EmptyState :icon="FileX" title="Không có đơn xin nghỉ" description="Chưa có đơn nào trong khoảng thời gian này" />
-                    </td>
-                  </tr>
-                </template>
-                <tr
-                  v-else
-                  v-for="e in paged"
-                  :key="e.id"
-                  class="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors cursor-pointer"
-                  @click="detail = e"
-                >
-                  <td class="py-3 px-5">
-                    <div class="flex items-center gap-2.5">
-                      <Avatar :name="e.name" :size="30" />
-                      <span class="font-medium">{{ e.name }}</span>
-                    </div>
-                  </td>
-                  <td class="py-3 px-3 text-foreground/80">{{ e.branch }}</td>
-                  <td class="py-3 px-3">{{ e.type }}{{ e.half ? ' (nửa ngày)' : '' }}</td>
-                  <td class="py-3 px-3 font-mono text-[12px] text-muted-foreground">{{ e.from }}</td>
-                  <td class="py-3 px-3 font-mono text-[12px] text-muted-foreground">{{ e.to }}</td>
-                  <td class="py-3 px-3 text-center">
-                    <Badge :variant="LEAVE_STATUS_META[e.status].variant" dot>{{ LEAVE_STATUS_META[e.status].label }}</Badge>
-                  </td>
-                  <td class="py-3 px-5">
-                    <div class="flex items-center justify-end gap-1.5" @click.stop>
-                      <template v-if="e.status === 'pending'">
-                        <Btn variant="success" size="xs" @click="approve(e)">Duyệt</Btn>
-                        <Btn variant="ghost" size="xs" @click="reject(e)">Từ chối</Btn>
-                      </template>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <!-- Week navigation -->
+          <div class="flex items-center justify-between px-5 py-3 border-b border-border/70 bg-muted/20">
+            <div class="flex items-center gap-2">
+              <button class="h-8 w-8 rounded-lg border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors" @click="weekStart = addDaysHelper(weekStart, -7)">
+                <ChevronRight :size="14" class="rotate-180" />
+              </button>
+              <span class="text-[13px] font-semibold text-foreground font-mono tabular-nums px-2">
+                {{ fmtSlash(weekStart) }} – {{ fmtSlash(addDaysHelper(weekStart, 6)) }}
+              </span>
+              <button class="h-8 w-8 rounded-lg border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors" @click="weekStart = addDaysHelper(weekStart, 7)">
+                <ChevronRight :size="14" />
+              </button>
+              <button class="h-8 px-3 rounded-lg border border-border bg-card text-[12px] font-medium text-foreground/70 hover:text-primary hover:border-primary/50 transition-colors ml-1" @click="weekStart = mondayOf(new Date().toISOString().slice(0, 10))">
+                Tuần này
+              </button>
+            </div>
+            <div class="hidden lg:flex items-center gap-3.5 text-[11.5px] text-muted-foreground flex-wrap">
+              <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded" style="background: hsl(var(--primary))" />Nghỉ cả ngày</span>
+              <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded" style="background: hsl(199 89% 48%)" />Nửa ngày</span>
+              <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded" style="background: hsl(160 60% 45%)" />Làm ở nhà</span>
+              <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded" style="background: hsl(231 60% 55%)" />Công tác</span>
+            </div>
           </div>
 
+          <!-- Loading skeleton -->
+          <template v-if="leaveStore.loading">
+            <div class="overflow-x-auto">
+              <table class="w-full border-collapse" style="min-width: 880px">
+                <tbody><SkeletonRow :cols="8" :rows="5" /></tbody>
+              </table>
+            </div>
+          </template>
+
+          <!-- Empty state -->
+          <template v-else-if="filteredGridMembers.length === 0">
+            <EmptyState :icon="FileX" title="Không có đơn xin nghỉ" description="Chưa có đơn nào trong khoảng thời gian này" />
+          </template>
+
+          <!-- LeaveGrid calendar -->
+          <LeaveGrid
+            v-else
+            :members="pagedGridMembers"
+            :entries="gridEntries"
+            :week-start="weekStart"
+            @select="onGridSelect"
+          />
+
+          <!-- Footer: week range + pagination -->
           <div class="flex items-center justify-between gap-4 flex-wrap px-5 py-3 border-t border-border/70 bg-muted/10">
-            <span class="text-[12px] text-muted-foreground">Tổng: <span class="font-semibold text-foreground">{{ filtered.length }}</span> đơn</span>
-            <div v-if="totalPages > 1" class="flex items-center gap-2 text-[12px] text-muted-foreground">
-              <span>Trang {{ page }}/{{ totalPages }}</span>
+            <span class="text-[12px] text-muted-foreground font-mono tabular-nums">{{ fmtSlash(weekStart) }} – {{ fmtSlash(addDaysHelper(weekStart, 6)) }}</span>
+            <div v-if="gridTotalPages > 1" class="flex items-center gap-2 text-[12px] text-muted-foreground">
+              <span>Trang {{ page }}/{{ gridTotalPages }}</span>
               <div class="flex items-center gap-1">
                 <button :disabled="page <= 1" class="h-7 w-7 rounded-md border border-border bg-card flex items-center justify-center text-muted-foreground disabled:opacity-40 hover:text-primary hover:border-primary/50 transition-colors" @click="page--">
-                  <X :size="11" class="rotate-90" />
+                  <ChevronRight :size="11" class="rotate-180" />
                 </button>
-                <button v-for="p in totalPages" :key="p"
+                <button v-for="p in gridTotalPages" :key="p"
                   :class="['h-7 min-w-7 px-2 rounded-md text-[12px] font-medium transition-colors', p === page ? 'text-white' : 'border border-border bg-card text-foreground/70 hover:border-primary/50']"
                   :style="p === page ? { background: 'hsl(var(--primary))' } : {}"
                   @click="page = p"
                 >{{ p }}</button>
-                <button :disabled="page >= totalPages" class="h-7 w-7 rounded-md border border-border bg-card flex items-center justify-center text-muted-foreground disabled:opacity-40 hover:text-primary hover:border-primary/50 transition-colors" @click="page++">
-                  <X :size="11" class="-rotate-90" />
+                <button :disabled="page >= gridTotalPages" class="h-7 w-7 rounded-md border border-border bg-card flex items-center justify-center text-muted-foreground disabled:opacity-40 hover:text-primary hover:border-primary/50 transition-colors" @click="page++">
+                  <ChevronRight :size="11" />
                 </button>
               </div>
             </div>
