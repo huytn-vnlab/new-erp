@@ -1,16 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Search, FileText, Eye } from 'lucide-vue-next'
+import { Search, FileText, Eye, FileX } from 'lucide-vue-next'
 import PageHeader from '~/components/layout/PageHeader.vue'
 import Btn from '~/components/base/Button.vue'
 import Select from '~/components/base/Select.vue'
 import Badge from '~/components/base/Badge.vue'
 import Avatar from '~/components/base/Avatar.vue'
+import SkeletonRow from '~/components/base/SkeletonRow.vue'
+import EmptyState from '~/components/base/EmptyState.vue'
+import ErrorBanner from '~/components/base/ErrorBanner.vue'
 import ContractForm from '~/components/contract/ContractForm.vue'
-import {
-  CONTRACTS, CONTRACT_TYPES, CONTRACT_BRANCHES,
-  type Contract,
-} from '~/mocks/contract'
 import type { ContractRow } from '~/types'
 import { useContractStore } from '~/stores/contract'
 
@@ -19,15 +18,25 @@ definePageMeta({ layout: 'admin', middleware: 'auth' })
 const contractStore = useContractStore()
 onMounted(() => { contractStore.fetchContracts(); contractStore.fetchContractTypes() })
 
+type ContractDisplay = {
+  id: number
+  user: string
+  branch: string
+  start: string
+  end: string | null
+  joined: string
+  type: string
+}
+
 const tab = ref<'list' | 'create' | 'types'>('list')
 const search = ref('')
 const filterBranch = ref('all')
 const filterType = ref('all')
-const selected = ref<Contract | null>(null)
+const selected = ref<ContractDisplay | null>(null)
 
 const { show } = useToast()
 
-function mapContractRow(r: ContractRow): Contract {
+function mapContractRow(r: ContractRow): ContractDisplay {
   return {
     id: r.id,
     user: `${r.first_name} ${r.last_name}`.trim(),
@@ -39,21 +48,17 @@ function mapContractRow(r: ContractRow): Contract {
   }
 }
 
-const allContracts = computed<Contract[]>(() =>
-  contractStore.contracts.length > 0 ? contractStore.contracts.map(mapContractRow) : CONTRACTS
+const allContracts = computed<ContractDisplay[]>(() =>
+  contractStore.contracts.map(mapContractRow)
 )
 
 const branchOpts = computed(() => {
-  const names = contractStore.contracts.length > 0
-    ? [...new Set(contractStore.contracts.map(c => c.branch_name).filter(Boolean))] as string[]
-    : CONTRACT_BRANCHES
+  const names = [...new Set(contractStore.contracts.map(c => c.branch_name).filter(Boolean))] as string[]
   return [{ value: 'all', label: 'Tất cả chi nhánh' }, ...names.map(b => ({ value: b, label: b }))]
 })
 
 const typeOpts = computed(() => {
-  const types = contractStore.contractTypes.length > 0
-    ? contractStore.contractTypes.map(t => ({ value: t.name, label: t.name }))
-    : CONTRACT_TYPES.map(t => ({ value: t.name, label: t.name }))
+  const types = contractStore.contractTypes.map(t => ({ value: t.name, label: t.name }))
   return [{ value: 'all', label: 'Tất cả loại' }, ...types]
 })
 
@@ -70,7 +75,7 @@ const filtered = computed(() =>
 type BadgeVariant = 'gray' | 'primary' | 'green' | 'red' | 'amber' | 'sky' | 'violet'
 
 const today = '2026-06-17'
-function contractStatus(c: Contract): { label: string; variant: BadgeVariant } {
+function contractStatus(c: ContractDisplay): { label: string; variant: BadgeVariant } {
   if (!c.end) return { label: 'Vô thời hạn', variant: 'green' }
   if (c.end < today) return { label: 'Hết hạn', variant: 'red' }
   const daysLeft = Math.round((new Date(c.end).getTime() - new Date(today).getTime()) / 86400000)
@@ -105,6 +110,8 @@ const fmtDateShort = (iso: string) => iso.slice(0, 7).replace('-', '/')
 
     <!-- LIST -->
     <template v-if="tab === 'list'">
+      <ErrorBanner v-if="contractStore.error" :message="contractStore.error" @retry="contractStore.fetchContracts()" />
+
       <div class="card-surface p-4">
         <div class="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-4 items-end">
           <div>
@@ -142,36 +149,41 @@ const fmtDateShort = (iso: string) => iso.slice(0, 7).replace('-', '/')
               </tr>
             </thead>
             <tbody>
-              <tr
-                v-for="c in filtered" :key="c.id"
-                class="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors cursor-pointer"
-                @click="selected = c"
-              >
-                <td class="py-3 px-5">
-                  <div class="flex items-center gap-2.5">
-                    <Avatar :name="c.user" :size="30" />
-                    <span class="font-medium truncate max-w-[150px]">{{ c.user }}</span>
-                  </div>
-                </td>
-                <td class="py-3 px-3 text-foreground/80">{{ c.branch }}</td>
-                <td class="py-3 px-3 font-mono text-[12px] text-foreground/80">{{ fmtDate(c.start) }}</td>
-                <td class="py-3 px-3 font-mono text-[12px] text-foreground/80">{{ fmtDate(c.end) }}</td>
-                <td class="py-3 px-3 font-mono text-[12px] text-muted-foreground">{{ fmtDate(c.joined) }}</td>
-                <td class="py-3 px-3 max-w-[260px]">
-                  <p class="truncate text-foreground/80">{{ c.type }}</p>
-                </td>
-                <td class="py-3 px-3 text-center">
-                  <Badge :variant="contractStatus(c).variant" dot>{{ contractStatus(c).label }}</Badge>
-                </td>
-                <td class="py-3 px-5 text-center">
-                  <button class="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-primary transition-colors" @click.stop="selected = c">
-                    <Eye :size="13" />
-                  </button>
+              <SkeletonRow v-if="contractStore.loading" :cols="8" :rows="5" />
+              <tr v-else-if="filtered.length === 0">
+                <td colspan="8" class="p-0">
+                  <EmptyState :icon="FileX" title="Không có hợp đồng nào" />
                 </td>
               </tr>
-              <tr v-if="filtered.length === 0">
-                <td colspan="8" class="py-14 text-center text-muted-foreground"><FileText :size="32" class="mx-auto mb-2 opacity-30" />Không tìm thấy hợp đồng phù hợp</td>
-              </tr>
+              <template v-else>
+                <tr
+                  v-for="c in filtered" :key="c.id"
+                  class="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors cursor-pointer"
+                  @click="selected = c"
+                >
+                  <td class="py-3 px-5">
+                    <div class="flex items-center gap-2.5">
+                      <Avatar :name="c.user" :size="30" />
+                      <span class="font-medium truncate max-w-[150px]">{{ c.user }}</span>
+                    </div>
+                  </td>
+                  <td class="py-3 px-3 text-foreground/80">{{ c.branch }}</td>
+                  <td class="py-3 px-3 font-mono text-[12px] text-foreground/80">{{ fmtDate(c.start) }}</td>
+                  <td class="py-3 px-3 font-mono text-[12px] text-foreground/80">{{ fmtDate(c.end) }}</td>
+                  <td class="py-3 px-3 font-mono text-[12px] text-muted-foreground">{{ fmtDate(c.joined) }}</td>
+                  <td class="py-3 px-3 max-w-[260px]">
+                    <p class="truncate text-foreground/80">{{ c.type }}</p>
+                  </td>
+                  <td class="py-3 px-3 text-center">
+                    <Badge :variant="contractStatus(c).variant" dot>{{ contractStatus(c).label }}</Badge>
+                  </td>
+                  <td class="py-3 px-5 text-center">
+                    <button class="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-primary transition-colors" @click.stop="selected = c">
+                      <Eye :size="13" />
+                    </button>
+                  </td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </div>
@@ -202,7 +214,7 @@ const fmtDateShort = (iso: string) => iso.slice(0, 7).replace('-', '/')
             </thead>
             <tbody>
               <tr
-                v-for="t in (contractStore.contractTypes.length > 0 ? contractStore.contractTypes.map(ct => ({ id: ct.contract_type_id, name: ct.name, file: ct.file_template_name, created: ct.created_at, updated: ct.created_at })) : CONTRACT_TYPES)"
+                v-for="t in contractStore.contractTypes.map(ct => ({ id: ct.contract_type_id, name: ct.name, file: ct.file_template_name, created: ct.created_at, updated: ct.created_at }))"
                 :key="t.id"
                 class="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors"
               >
@@ -221,7 +233,7 @@ const fmtDateShort = (iso: string) => iso.slice(0, 7).replace('-', '/')
           </table>
         </div>
         <div class="px-5 py-3 border-t border-border/70 bg-muted/10 text-[12.5px] text-muted-foreground">
-          Tổng: <span class="font-semibold text-foreground">{{ contractStore.contractTypes.length || CONTRACT_TYPES.length }}</span> loại hợp đồng
+          Tổng: <span class="font-semibold text-foreground">{{ contractStore.contractTypes.length }}</span> loại hợp đồng
         </div>
       </div>
     </template>
