@@ -2,8 +2,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { Plus, X, Search, CalendarCheck, FileX, ChevronRight } from 'lucide-vue-next'
 import LeaveGrid from '~/components/leave/LeaveGrid.vue'
-import type { LeaveEntry as GridEntry, LeaveMember, LeaveType } from '~/mocks/leave'
-import { LEAVE_TYPES } from '~/mocks/leave'
 import PageHeader from '~/components/layout/PageHeader.vue'
 import Btn from '~/components/base/Button.vue'
 import MiniStat from '~/components/base/MiniStat.vue'
@@ -28,6 +26,10 @@ type LeaveEntry = {
   type: string; from: string; to: string
   status: LeaveStatus; reason: string; half: boolean
 }
+type LeaveType = 'Nghỉ cả ngày' | 'Nghỉ buổi sáng' | 'Nghỉ buổi chiều' | 'Đi muộn' | 'Về sớm' | 'Ra ngoài' | 'Làm ở nhà' | 'Công tác' | 'Khác'
+type LeaveMember = { id: number; name: string; branch: string }
+type GridEntry = { id: number; memberId: number; type: LeaveType; from: string; to: string; status: LeaveStatus; reason: string; half: boolean }
+const LEAVE_TYPES: LeaveType[] = ['Nghỉ cả ngày', 'Nghỉ buổi sáng', 'Nghỉ buổi chiều', 'Đi muộn', 'Về sớm', 'Ra ngoài', 'Làm ở nhà', 'Công tác', 'Khác']
 
 const LEAVE_STATUS_NUM_MAP: Record<number, LeaveStatus> = { 1: 'pending', 2: 'approved', 3: 'rejected' }
 const LEAVE_STATUS_META: Record<LeaveStatus, { label: string; variant: 'amber' | 'green' | 'red' }> = {
