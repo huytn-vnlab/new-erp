@@ -12,12 +12,14 @@ export const useProjectStore = defineStore('project', () => {
   const projects = ref<ProjectRow[]>([])
   const pagination = ref<Pagination>({ current_page: 1, total_row: 0, row_per_page: 20 })
   const loading = ref(false)
+  const error = ref<string | null>(null)
 
   async function fetchProjects(params: {
     keyword?: string
     current_page?: number
   } = {}) {
     loading.value = true
+    error.value = null
     try {
       const res = await post<ProjectListResponse>('/api/project/get-project-list', {
         keyword: params.keyword ?? '',
@@ -28,6 +30,8 @@ export const useProjectStore = defineStore('project', () => {
         projects.value = res.data.projects ?? []
         pagination.value = res.data.pagination ?? pagination.value
       }
+    } catch {
+      error.value = 'Không thể tải danh sách dự án'
     } finally {
       loading.value = false
     }
@@ -39,15 +43,18 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   async function createProject(payload: { project_name: string; managed_by: number; project_description: string }) {
-    return post('/api/project/add-project', payload)
+    const res = await post('/api/project/add-project', payload)
+    return { ok: res.status === 1, message: res.message }
   }
 
   async function updateProject(payload: { project_id: number; project_name?: string; project_description?: string }) {
-    return post('/api/project/update-project', payload)
+    const res = await post('/api/project/update-project', payload)
+    return { ok: res.status === 1, message: res.message }
   }
 
   async function deleteProject(projectId: number) {
-    return post('/api/project/delete-project', { project_id: projectId })
+    const res = await post('/api/project/delete-project', { project_id: projectId })
+    return { ok: res.status === 1, message: res.message }
   }
 
   async function fetchProjectMembers(projectId: number) {
@@ -56,7 +63,7 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   return {
-    projects, pagination, loading,
+    projects, pagination, loading, error,
     fetchProjects, fetchMyProjects, createProject, updateProject, deleteProject, fetchProjectMembers,
   }
 })

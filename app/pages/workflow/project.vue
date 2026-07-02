@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { FileText, Plus, X, Check, Folder, Target, Search } from 'lucide-vue-next'
+import { FileText, Plus, X, Check, Folder, Target, Search, FolderOpen } from 'lucide-vue-next'
 import PageHeader from '~/components/layout/PageHeader.vue'
 import Btn from '~/components/base/Button.vue'
 import MiniStat from '~/components/base/MiniStat.vue'
@@ -9,10 +9,34 @@ import Avatar from '~/components/base/Avatar.vue'
 import Select from '~/components/base/Select.vue'
 import FilterBar from '~/components/base/FilterBar.vue'
 import FieldInput from '~/components/base/FieldInput.vue'
-import { PROJECTS_INIT, PROJECT_STATUS_META, ALL_MEMBERS, ALL_TECH, type Project, type ProjectStatus, type ProjectTarget } from '~/mocks/project'
+import SkeletonRow from '~/components/base/SkeletonRow.vue'
+import EmptyState from '~/components/base/EmptyState.vue'
+import ErrorBanner from '~/components/base/ErrorBanner.vue'
+import Modal from '~/components/base/Modal.vue'
 import { useProjectStore } from '~/stores/project'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
+
+// ── Inlined types & constants (previously from ~/mocks/project) ──
+type BadgeVariant = 'gray' | 'primary' | 'green' | 'red' | 'amber' | 'sky' | 'violet'
+type ProjectStatus = 'pending' | 'active' | 'ended'
+type ProjectTarget = { id: number; year: number; quarter: number; weight: number; content: string }
+type Project = {
+  id: number; name: string; desc: string; status: ProjectStatus
+  manager: string; branch: string; start: string; end: string
+  members: number; tech: string[]; targets: ProjectTarget[]
+}
+const PROJECT_STATUS_META: Record<ProjectStatus, { label: string; variant: BadgeVariant }> = {
+  pending: { label: 'Chờ khởi động', variant: 'amber' },
+  active:  { label: 'Đang hoạt động', variant: 'green' },
+  ended:   { label: 'Đã kết thúc', variant: 'gray' },
+}
+const ALL_MEMBERS = [
+  'Nguyễn Văn An', 'Trần Thị Mai', 'Lê Quang Huy', 'Phạm Thu Hà',
+  'Đỗ Minh Tuấn', 'Hoàng Đức Thành', 'Vũ Thị Lan', 'Bùi Đức Thành',
+  'Ngô Thanh Tùng', 'Đặng Thị Hồng', 'Lý Quỳnh Anh', 'Trần Ngọc Huy', 'Trần Cao Quý',
+]
+const ALL_TECH = ['Vue.js','React','React Native','Angular','TypeScript','Node.js','Go','Python','Java','PHP','Flutter','AWS','Docker','Kubernetes','PostgreSQL','MongoDB','Redis','Kafka','GraphQL','gRPC']
 
 const auth = useAuth()
 const projectStore = useProjectStore()
@@ -20,33 +44,31 @@ onMounted(() => projectStore.fetchProjects())
 
 const ME_MANAGER = computed(() => auth.user.value?.name ?? 'Hoàng Đức Thành')
 
-// ── List state ──
-const projects = ref<Project[]>(PROJECTS_INIT.map(p => ({ ...p, targets: [...p.targets] })))
+// ── List state — populated from store ──
+const projects = ref<Project[]>([])
 
-// Populate from store when data loads
 watch(() => projectStore.projects, (rows) => {
-  if (rows.length > 0) {
-    projects.value = rows.map(r => ({
-      id: r.project_id,
-      name: r.project_name,
-      desc: r.project_description ?? '',
-      status: 'active' as ProjectStatus,
-      manager: ME_MANAGER.value,
-      branch: '',
-      start: r.created_at ? r.created_at.slice(0, 10).split('-').reverse().join('/') : '',
-      end: '—',
-      members: 0,
-      tech: [],
-      targets: (r.project_targets ?? []).map((t, i) => ({
-        id: i + 1,
-        year: t.year ?? new Date().getFullYear(),
-        quarter: t.quarter ?? 1,
-        weight: 5,
-        content: t.content ?? '',
-      })),
-    }))
-  }
+  projects.value = rows.map(r => ({
+    id: (r as any).project_id ?? (r as any).id ?? 0,
+    name: r.project_name,
+    desc: r.project_description ?? '',
+    status: 'active' as ProjectStatus,
+    manager: (r as any).manager_name ?? ME_MANAGER.value,
+    branch: '',
+    start: r.created_at ? r.created_at.slice(0, 10).split('-').reverse().join('/') : '',
+    end: '—',
+    members: 0,
+    tech: [],
+    targets: (r.project_targets ?? []).map((t, i) => ({
+      id: i + 1,
+      year: t.year ?? new Date().getFullYear(),
+      quarter: t.quarter ?? 1,
+      weight: 5,
+      content: t.content ?? '',
+    })),
+  }))
 }, { immediate: true })
+
 const tab = ref<'all' | 'mine' | 'active' | 'ended'>('all')
 const search = ref('')
 const statusF = ref('all')
@@ -56,6 +78,10 @@ const modalOpen = ref(false)
 const modalEditing = ref<Project | null>(null)
 const toast = ref('')
 
+// ── Delete confirm state ──
+const deleteConfirmOpen = ref(false)
+const deletingId = ref<number | null>(null)
+
 // ── Modal form state ──
 const form = reactive({ name: '', manager: ME_MANAGER.value, start: '', end: '', desc: '', status: 'pending' as ProjectStatus })
 const modalMembers = ref<string[]>([])
@@ -63,7 +89,7 @@ const modalTechs = ref<string[]>([])
 const modalTargets = ref<ProjectTarget[]>([])
 const memberSearch = ref('')
 const techSearch = ref('')
-const formErrors = reactive({ name: '', start: '' })
+const formErrors = reactive({ name: '' })
 // Target draft
 const draftTarget = ref<{ id?: number; year: string; quarter: string; weight: string; content: string } | null>(null)
 const BLANK_DRAFT = { year: '2026', quarter: '3', weight: '5', content: '' }
@@ -154,7 +180,6 @@ function openCreateModal() {
   techSearch.value = ''
   draftTarget.value = null
   formErrors.name = ''
-  formErrors.start = ''
   modalOpen.value = true
 }
 
@@ -172,36 +197,42 @@ function openEditModal(p: Project) {
   techSearch.value = ''
   draftTarget.value = null
   formErrors.name = ''
-  formErrors.start = ''
   openProject.value = null
   modalOpen.value = true
 }
 
+function openDeleteConfirm(id: number) {
+  deletingId.value = id
+  deleteConfirmOpen.value = true
+}
+
+async function confirmDelete() {
+  if (deletingId.value == null) return
+  const { ok } = await projectStore.deleteProject(deletingId.value)
+  if (ok) {
+    await projectStore.fetchProjects()
+    showToast('Đã xóa dự án')
+  }
+  deleteConfirmOpen.value = false
+  deletingId.value = null
+}
+
 async function submitModal() {
   formErrors.name = ''
-  formErrors.start = ''
   if (!form.name.trim()) { formErrors.name = 'Vui lòng nhập tên dự án'; return }
-  if (!form.start) { formErrors.start = 'Chọn ngày bắt đầu'; return }
-
-  const data: Partial<Project> = {
-    name: form.name, desc: form.desc, manager: form.manager,
-    status: form.status as ProjectStatus,
-    start: formatDate(form.start),
-    end: form.end ? formatDate(form.end) : '—',
-    tech: modalTechs.value.slice(0, 4),
-    targets: modalTargets.value.map(t => ({ ...t })),
-  }
 
   if (modalEditing.value) {
-    await projectStore.updateProject({ project_id: modalEditing.value.id, project_name: form.name, project_description: form.desc })
-    const idx = projects.value.findIndex(p => p.id === modalEditing.value!.id)
-    if (idx >= 0) projects.value[idx] = { ...projects.value[idx]!, ...data } as Project
-    showToast('Đã cập nhật dự án: ' + form.name)
+    const { ok } = await projectStore.updateProject({ project_id: modalEditing.value.id, project_name: form.name, project_description: form.desc })
+    if (ok) {
+      await projectStore.fetchProjects()
+      showToast('Đã cập nhật dự án: ' + form.name)
+    }
   } else {
-    const res = await projectStore.createProject({ project_name: form.name, managed_by: auth.user.value?.id ?? 0, project_description: form.desc })
-    const newId = res?.data?.project_id ?? Date.now()
-    projects.value.unshift({ ...data, id: newId, branch: 'Hà Nội', members: modalMembers.value.length || 1 } as Project)
-    showToast('Đã tạo dự án: ' + form.name)
+    const { ok } = await projectStore.createProject({ project_name: form.name, managed_by: auth.user.value?.id ?? 0, project_description: form.desc })
+    if (ok) {
+      await projectStore.fetchProjects()
+      showToast('Đã tạo dự án: ' + form.name)
+    }
   }
   modalOpen.value = false
 }
@@ -293,58 +324,77 @@ function memberAvatarBg(i: number): string {
     <span class="text-[12px] text-muted-foreground">{{ filtered.length }} dự án</span>
   </FilterBar>
 
+  <!-- Error banner -->
+  <ErrorBanner v-if="projectStore.error" :message="projectStore.error" @retry="projectStore.fetchProjects()" />
+
   <!-- Project card grid -->
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-    <div
-      v-for="(p, i) in filtered" :key="p.id"
-      class="card-surface interactive p-5 flex flex-col gap-4 cursor-pointer rise"
-      :class="p.status === 'ended' ? 'opacity-75' : ''"
-      :style="{ animationDelay: `${40 + i * 30}ms` }"
-      @click="openProject = p; detailTab = 'overview'"
-    >
-      <div class="flex items-start justify-between gap-2">
-        <div class="min-w-0 flex-1">
-          <Badge :variant="PROJECT_STATUS_META[p.status].variant" dot>{{ PROJECT_STATUS_META[p.status].label }}</Badge>
-          <h3 class="font-semibold text-foreground line-clamp-2 leading-snug mt-2">{{ p.name }}</h3>
+    <!-- Loading skeleton -->
+    <template v-if="projectStore.loading">
+      <div v-for="i in 6" :key="i" class="card-surface p-5 h-48 animate-pulse" />
+    </template>
+
+    <template v-else>
+      <div
+        v-for="(p, i) in filtered" :key="p.id"
+        class="card-surface interactive p-5 flex flex-col gap-4 cursor-pointer rise"
+        :class="p.status === 'ended' ? 'opacity-75' : ''"
+        :style="{ animationDelay: `${40 + i * 30}ms` }"
+        @click="openProject = p; detailTab = 'overview'"
+      >
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0 flex-1">
+            <Badge :variant="PROJECT_STATUS_META[p.status].variant" dot>{{ PROJECT_STATUS_META[p.status].label }}</Badge>
+            <h3 class="font-semibold text-foreground line-clamp-2 leading-snug mt-2">{{ p.name }}</h3>
+          </div>
+          <Avatar :name="p.manager" :size="28" />
         </div>
-        <Avatar :name="p.manager" :size="28" />
-      </div>
 
-      <p class="text-[12.5px] text-muted-foreground line-clamp-2">{{ p.desc }}</p>
+        <p class="text-[12.5px] text-muted-foreground line-clamp-2">{{ p.desc }}</p>
 
-      <div v-if="p.targets.length > 0" class="flex items-center gap-2 flex-wrap">
-        <span class="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
-          <Target :size="11" /> {{ p.targets.length }} mục tiêu quý
-        </span>
-        <span class="text-[11px] text-muted-foreground">· Tổng trọng số {{ p.targets.reduce((a, t) => a + t.weight, 0) }}</span>
-      </div>
+        <div v-if="p.targets.length > 0" class="flex items-center gap-2 flex-wrap">
+          <span class="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
+            <Target :size="11" /> {{ p.targets.length }} mục tiêu quý
+          </span>
+          <span class="text-[11px] text-muted-foreground">· Tổng trọng số {{ p.targets.reduce((a, t) => a + t.weight, 0) }}</span>
+        </div>
 
-      <div class="flex flex-wrap gap-1">
-        <span
-          v-for="t in p.tech" :key="t"
-          class="text-[10.5px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono"
-        >{{ t }}</span>
-      </div>
+        <div class="flex flex-wrap gap-1">
+          <span
+            v-for="t in p.tech" :key="t"
+            class="text-[10.5px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono"
+          >{{ t }}</span>
+        </div>
 
-      <div class="flex items-center justify-between pt-3 border-t border-border/60 text-[12px]">
-        <div class="flex -space-x-2">
-          <div
-            v-for="idx in Math.min(p.members, 5)" :key="idx"
-            class="h-6 w-6 rounded-md border-2 border-card"
-            :style="{ background: memberAvatarBg(idx - 1) }"
-          />
-          <div v-if="p.members > 5" class="h-6 w-6 rounded-md border-2 border-card bg-muted flex items-center justify-center text-[9.5px] font-semibold text-muted-foreground">
-            +{{ p.members - 5 }}
+        <div class="flex items-center justify-between pt-3 border-t border-border/60 text-[12px]">
+          <div class="flex -space-x-2">
+            <div
+              v-for="idx in Math.min(p.members, 5)" :key="idx"
+              class="h-6 w-6 rounded-md border-2 border-card"
+              :style="{ background: memberAvatarBg(idx - 1) }"
+            />
+            <div v-if="p.members > 5" class="h-6 w-6 rounded-md border-2 border-card bg-muted flex items-center justify-center text-[9.5px] font-semibold text-muted-foreground">
+              +{{ p.members - 5 }}
+            </div>
+          </div>
+          <div class="flex items-center gap-1" @click.stop>
+            <button
+              class="h-6 px-2 rounded text-[11.5px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              @click="openEditModal(p)"
+            >Sửa</button>
+            <button
+              class="h-6 px-2 rounded text-[11.5px] font-medium text-muted-foreground hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-500 transition-colors"
+              @click="openDeleteConfirm(p.id)"
+            >Xóa</button>
           </div>
         </div>
-        <span class="font-mono text-muted-foreground text-[11.5px]">{{ p.start }} → {{ p.end }}</span>
       </div>
-    </div>
 
-    <div v-if="filtered.length === 0" class="col-span-full card-surface py-16 text-center text-muted-foreground">
-      <Folder :size="40" class="mx-auto mb-3 opacity-30" />
-      Không có dự án phù hợp
-    </div>
+      <!-- Empty state -->
+      <div v-if="filtered.length === 0" class="col-span-full">
+        <EmptyState :icon="FolderOpen" title="Không có dự án nào" />
+      </div>
+    </template>
   </div>
 
   <!-- ── Project detail slide-over ── -->
@@ -479,11 +529,11 @@ function memberAvatarBg(i: number): string {
         <div class="overflow-y-auto scrollbar-thin flex-1 p-6 space-y-5">
           <!-- Name -->
           <div>
-            <label class="block text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">Tên dự án <span class="text-red-400">*</span></label>
-            <input v-model="form.name" placeholder="VD: Setting mục tiêu KAIZEN 15% theo phương châm tập đoàn"
+            <label for="modal-project-name" class="block text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">Tên dự án <span class="text-red-400">*</span></label>
+            <input id="modal-project-name" v-model="form.name" placeholder="VD: Setting mục tiêu KAIZEN 15% theo phương châm tập đoàn"
               class="w-full h-9 px-3 rounded-lg border text-[13px] text-foreground outline-none transition-colors placeholder:text-muted-foreground/45 bg-card"
               :class="formErrors.name ? 'border-red-400' : 'border-border focus:border-primary/60'" />
-            <p v-if="formErrors.name" class="text-[11.5px] text-red-400 mt-1">{{ formErrors.name }}</p>
+            <p v-if="formErrors.name" class="text-[11.5px] text-red-500 mt-1">{{ formErrors.name }}</p>
           </div>
 
           <!-- Manager + Status -->
@@ -501,11 +551,9 @@ function memberAvatarBg(i: number): string {
           <!-- Dates -->
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">Ngày bắt đầu <span class="text-red-400">*</span></label>
+              <label class="block text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">Ngày bắt đầu</label>
               <input v-model="form.start" type="date"
-                class="w-full h-9 px-3 rounded-lg border text-[13px] text-foreground outline-none bg-card"
-                :class="formErrors.start ? 'border-red-400' : 'border-border focus:border-primary/60'" />
-              <p v-if="formErrors.start" class="text-[11.5px] text-red-400 mt-1">{{ formErrors.start }}</p>
+                class="w-full h-9 px-3 rounded-lg border text-[13px] text-foreground outline-none bg-card border-border focus:border-primary/60" />
             </div>
             <div>
               <label class="block text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">Ngày kết thúc dự kiến</label>
@@ -647,12 +695,23 @@ function memberAvatarBg(i: number): string {
           <Btn variant="outline" size="sm" @click="modalOpen = false">Hủy</Btn>
           <Btn variant="primary" size="sm" @click="submitModal">
             <Plus v-if="!modalEditing" :size="13" />
-            {{ modalEditing ? 'Submit All' : 'Tạo dự án' }}
+            Lưu
           </Btn>
         </div>
       </div>
     </div>
   </Teleport>
+
+  <!-- ── Delete Confirm Modal ── -->
+  <Modal v-model:open="deleteConfirmOpen" title="Xác nhận xóa" :max-width="400">
+    <div class="px-6 py-4">
+      <p class="text-[13.5px] text-foreground/85">Bạn có chắc chắn muốn xóa dự án này không? Hành động này không thể hoàn tác.</p>
+    </div>
+    <template #footer>
+      <Btn variant="ghost" size="sm" @click="deleteConfirmOpen = false">Hủy</Btn>
+      <Btn variant="danger" size="sm" @click="confirmDelete">Xác nhận</Btn>
+    </template>
+  </Modal>
 
   <!-- Toast -->
   <Teleport to="body">
