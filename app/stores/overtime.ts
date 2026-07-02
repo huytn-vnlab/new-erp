@@ -12,6 +12,7 @@ export const useOvertimeStore = defineStore('overtime', () => {
   const rows = ref<OvertimeRow[]>([])
   const pagination = ref<Pagination>({ current_page: 1, total_row: 0, row_per_page: 20 })
   const loading = ref(false)
+  const error = ref<string | null>(null)
 
   async function fetchOvertimes(params: {
     branch?: number
@@ -20,6 +21,7 @@ export const useOvertimeStore = defineStore('overtime', () => {
     current_page?: number
   } = {}) {
     loading.value = true
+    error.value = null
     try {
       const res = await post<OtListResponse>('/api/overtime/get-overtime-requests', {
         branch: params.branch ?? 0,
@@ -36,18 +38,23 @@ export const useOvertimeStore = defineStore('overtime', () => {
       if (res.status === 1 && res.data) {
         rows.value = res.data.overtime_requests ?? []
         pagination.value = res.data.pagination ?? pagination.value
+      } else {
+        error.value = res.message || 'Không thể tải danh sách OT.'
       }
+    } catch {
+      error.value = 'Không thể tải dữ liệu. Vui lòng thử lại.'
     } finally {
       loading.value = false
     }
   }
 
   async function updateStatus(id: number, status: number) {
-    return post('/api/overtime/update-overtime-request-status', { id, status })
+    const res = await post('/api/overtime/update-overtime-request-status', { id, status })
+    return { ok: res.status === 1, message: res.message }
   }
 
   return {
-    rows, pagination, loading,
+    rows, pagination, loading, error,
     fetchOvertimes, updateStatus,
   }
 })

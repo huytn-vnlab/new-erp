@@ -11,14 +11,52 @@ import FilterBar from '~/components/base/FilterBar.vue'
 import FieldInput from '~/components/base/FieldInput.vue'
 import SectionCard from '~/components/home/SectionCard.vue'
 import BarRow from '~/components/charts/BarRow.vue'
-import { OT_REQUESTS, OT_STATUS_META, OT_PROJECTS, type OTRequest, type OTStatus } from '~/mocks/overtime'
+import SkeletonRow from '~/components/base/SkeletonRow.vue'
+import EmptyState from '~/components/base/EmptyState.vue'
+import ErrorBanner from '~/components/base/ErrorBanner.vue'
 import type { OvertimeRow } from '~/types'
 import { useOvertimeStore } from '~/stores/overtime'
+
+type BadgeVariant = 'gray' | 'primary' | 'green' | 'red' | 'amber' | 'sky' | 'violet'
+export type OTStatus = 'pending' | 'approved' | 'rejected'
+export type OTRequest = {
+  id: number
+  user: string
+  branch: string
+  project: string
+  date: string
+  start: string
+  end: string
+  hours: number
+  reason: string
+  status: OTStatus
+  approver: string | null
+  approved: string | null
+  submitted: string
+  rejectReason?: string
+}
+
+const OT_STATUS_META: Record<OTStatus, { label: string; variant: BadgeVariant; dot: boolean }> = {
+  pending:  { label: 'Chờ duyệt', variant: 'amber', dot: true },
+  approved: { label: 'Đã duyệt',  variant: 'green', dot: true },
+  rejected: { label: 'Từ chối',   variant: 'red',   dot: true },
+}
+
+const OT_PROJECTS = [
+  'Cổng thanh toán XYZ',
+  'Hệ thống CRM nội bộ',
+  'App giao đồ ăn FoodGo',
+  'Module báo cáo BI',
+  'Quản lý kho ABC v2',
+  'Mobile companion app',
+  'Cổng tích hợp API v3',
+]
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
 const auth = useAuth()
 const overtimeStore = useOvertimeStore()
+const { show } = useToast()
 onMounted(() => overtimeStore.fetchOvertimes())
 
 const ME = computed(() => auth.user.value?.name ?? 'Nguyễn Văn An')
@@ -64,7 +102,7 @@ function mapOtRow(r: OvertimeRow): OTRequest {
 const tab = ref<'manage' | 'mine'>('manage')
 const statusFilter = ref('all')
 const search = ref('')
-const requests = ref<OTRequest[]>(OT_REQUESTS.map(r => ({ ...r })))
+const requests = ref<OTRequest[]>([])
 
 // Populate from store when data loads
 watch(() => overtimeStore.rows, (rows) => {
@@ -162,22 +200,32 @@ function otCellBg(h: number, intensity: number) {
 }
 
 async function handleApprove(row: OTRequest) {
-  await overtimeStore.updateStatus(row.id, 2)
-  const idx = requests.value.findIndex(r => r.id === row.id)
-  if (idx >= 0) {
-    const cur = requests.value[idx]!
-    requests.value[idx] = { ...cur, status: 'approved', approver: ME.value }
+  const { ok, message } = await overtimeStore.updateStatus(row.id, 2)
+  if (ok) {
+    show('Đã duyệt thành công!', 'success')
+    const idx = requests.value.findIndex(r => r.id === row.id)
+    if (idx >= 0) {
+      const cur = requests.value[idx]!
+      requests.value[idx] = { ...cur, status: 'approved', approver: ME.value }
+    }
+  } else {
+    show(message || 'Không thể duyệt yêu cầu OT.', 'error')
   }
 }
 
 async function confirmReject() {
   if (!openReject.value || !rejectReason.value.trim()) return
   const id = openReject.value.id
-  await overtimeStore.updateStatus(id, 3)
-  const idx = requests.value.findIndex(r => r.id === id)
-  if (idx >= 0) {
-    const cur = requests.value[idx]!
-    requests.value[idx] = { ...cur, status: 'rejected', approver: ME.value, rejectReason: rejectReason.value }
+  const { ok, message } = await overtimeStore.updateStatus(id, 3)
+  if (ok) {
+    show('Đã từ chối yêu cầu OT.', 'success')
+    const idx = requests.value.findIndex(r => r.id === id)
+    if (idx >= 0) {
+      const cur = requests.value[idx]!
+      requests.value[idx] = { ...cur, status: 'rejected', approver: ME.value, rejectReason: rejectReason.value }
+    }
+  } else {
+    show(message || 'Không thể từ chối yêu cầu OT.', 'error')
   }
   openReject.value = null
   rejectReason.value = ''
@@ -291,6 +339,9 @@ function submitCreate() {
       </SectionCard>
     </div>
 
+    <!-- Error banner -->
+    <ErrorBanner v-if="overtimeStore.error" :message="overtimeStore.error" @retry="overtimeStore.fetchOvertimes()" />
+
     <!-- Tab strip + filter + table -->
     <div class="space-y-4">
       <div class="border-b border-border/70">
@@ -330,52 +381,54 @@ function submitCreate() {
               </tr>
             </thead>
             <tbody>
-              <tr
-                v-for="r in filtered" :key="r.id"
-                class="border-b border-border/60 last:border-0 hover:bg-muted/30 transition-colors"
-              >
-                <td class="py-3 px-5">
-                  <div class="flex items-center gap-3">
-                    <Avatar :name="r.user" :size="30" />
-                    <div>
-                      <p class="font-semibold text-foreground">{{ r.user }}</p>
-                      <p class="text-[11px] text-muted-foreground">{{ r.branch }}</p>
-                    </div>
-                  </div>
-                </td>
-                <td class="py-3 px-3">
-                  <p class="text-foreground/85 text-[12.5px] truncate max-w-[200px]">{{ r.project }}</p>
-                  <p class="text-[11px] text-muted-foreground truncate max-w-[200px]">{{ r.reason }}</p>
-                </td>
-                <td class="py-3 px-3">
-                  <p class="font-mono text-foreground/85">{{ r.date }}</p>
-                  <p class="text-[11.5px] font-mono text-primary">{{ r.start }} – {{ r.end }}</p>
-                </td>
-                <td class="py-3 px-3 text-center">
-                  <span class="font-bold tabular-nums text-foreground">{{ r.hours }}</span>
-                  <span class="text-muted-foreground text-[11px]">h</span>
-                </td>
-                <td class="py-3 px-3 text-center">
-                  <Badge :variant="OT_STATUS_META[r.status].variant" dot>{{ OT_STATUS_META[r.status].label }}</Badge>
-                  <p v-if="r.status === 'rejected' && r.rejectReason" class="text-[10.5px] text-muted-foreground mt-0.5 italic truncate max-w-[100px]">{{ r.rejectReason }}</p>
-                </td>
-                <td class="py-3 px-5 text-right">
-                  <template v-if="r.status === 'pending'">
-                    <div v-if="tab === 'manage'" class="inline-flex gap-1.5">
-                      <Btn variant="success" size="xs" @click="handleApprove(r)"><Check :size="11" />Duyệt</Btn>
-                      <Btn variant="ghost" size="xs" @click="openCreateReject(r)">Từ chối</Btn>
-                    </div>
-                    <Btn v-else variant="ghost" size="xs">Huỷ đơn</Btn>
-                  </template>
-                  <span v-else class="text-[11px] text-muted-foreground">{{ r.approver || '—' }}</span>
+              <SkeletonRow v-if="overtimeStore.loading" :cols="6" :rows="5" />
+              <tr v-else-if="filtered.length === 0">
+                <td colspan="6" class="p-0">
+                  <EmptyState :icon="Clock" title="Không có yêu cầu OT" description="Không có yêu cầu OT phù hợp với bộ lọc hiện tại." />
                 </td>
               </tr>
-              <tr v-if="filtered.length === 0">
-                <td colspan="6" class="py-14 text-center text-muted-foreground">
-                  <Clock :size="36" class="mx-auto mb-2 opacity-30" />
-                  Không có yêu cầu OT phù hợp
-                </td>
-              </tr>
+              <template v-else>
+                <tr
+                  v-for="r in filtered" :key="r.id"
+                  class="border-b border-border/60 last:border-0 hover:bg-muted/30 transition-colors"
+                >
+                  <td class="py-3 px-5">
+                    <div class="flex items-center gap-3">
+                      <Avatar :name="r.user" :size="30" />
+                      <div>
+                        <p class="font-semibold text-foreground">{{ r.user }}</p>
+                        <p class="text-[11px] text-muted-foreground">{{ r.branch }}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-3">
+                    <p class="text-foreground/85 text-[12.5px] truncate max-w-[200px]">{{ r.project }}</p>
+                    <p class="text-[11px] text-muted-foreground truncate max-w-[200px]">{{ r.reason }}</p>
+                  </td>
+                  <td class="py-3 px-3">
+                    <p class="font-mono text-foreground/85">{{ r.date }}</p>
+                    <p class="text-[11.5px] font-mono text-primary">{{ r.start }} – {{ r.end }}</p>
+                  </td>
+                  <td class="py-3 px-3 text-center">
+                    <span class="font-bold tabular-nums text-foreground">{{ r.hours }}</span>
+                    <span class="text-muted-foreground text-[11px]">h</span>
+                  </td>
+                  <td class="py-3 px-3 text-center">
+                    <Badge :variant="OT_STATUS_META[r.status].variant" dot>{{ OT_STATUS_META[r.status].label }}</Badge>
+                    <p v-if="r.status === 'rejected' && r.rejectReason" class="text-[10.5px] text-muted-foreground mt-0.5 italic truncate max-w-[100px]">{{ r.rejectReason }}</p>
+                  </td>
+                  <td class="py-3 px-5 text-right">
+                    <template v-if="r.status === 'pending'">
+                      <div v-if="tab === 'manage'" class="inline-flex gap-1.5">
+                        <Btn variant="success" size="xs" @click="handleApprove(r)"><Check :size="11" />Duyệt</Btn>
+                        <Btn variant="ghost" size="xs" @click="openCreateReject(r)">Từ chối</Btn>
+                      </div>
+                      <Btn v-else variant="ghost" size="xs">Huỷ đơn</Btn>
+                    </template>
+                    <span v-else class="text-[11px] text-muted-foreground">{{ r.approver || '—' }}</span>
+                  </td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </div>
