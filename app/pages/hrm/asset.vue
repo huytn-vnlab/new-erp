@@ -1,22 +1,79 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Plus, Search, LayoutGrid, List, X, Send } from 'lucide-vue-next'
+import { Plus, Search, LayoutGrid, List, X, Send, Package } from 'lucide-vue-next'
 import PageHeader from '~/components/layout/PageHeader.vue'
 import Btn from '~/components/base/Button.vue'
 import MiniStat from '~/components/base/MiniStat.vue'
 import Badge from '~/components/base/Badge.vue'
 import Select from '~/components/base/Select.vue'
 import Avatar from '~/components/base/Avatar.vue'
+import SkeletonRow from '~/components/base/SkeletonRow.vue'
+import EmptyState from '~/components/base/EmptyState.vue'
+import ErrorBanner from '~/components/base/ErrorBanner.vue'
 import AssetDetail from '~/components/asset/AssetDetail.vue'
-import {
-  ASSETS, ASSET_REQUESTS, CATEGORY_META, ASSET_STATUS_META, formatVND,
-  type Asset, type AssetStatus, type AssetCategory,
-} from '~/mocks/asset'
 import type { AssetRow } from '~/types'
 import { useAssetStore } from '~/stores/asset'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+type AssetStatus = 'available' | 'in_use' | 'maintenance' | 'broken'
+type AssetCategory = 'laptop' | 'monitor' | 'keyboard' | 'mouse' | 'headphone' | 'phone' | 'tablet' | 'other'
+
+type Asset = {
+  id: string
+  name: string
+  category: AssetCategory
+  spec: string
+  serial: string
+  status: AssetStatus
+  user: string | null
+  branch: string
+  date: string
+  value: number
+}
+
+type AssetRequest = {
+  id: number
+  asset: string
+  user: string
+  note: string
+  return: string
+  submitted: string
+  status: 'pending' | 'approved' | 'completed'
+}
+
+// ── Display constants ──────────────────────────────────────────────────────────
+const CATEGORY_META: Record<AssetCategory, { label: string; glyph: string; color: string }> = {
+  laptop:    { label: 'Laptop',     glyph: '⌘',  color: 'hsl(var(--primary-h) var(--primary-s) 55%)' },
+  monitor:   { label: 'Màn hình',   glyph: '▭',  color: 'hsl(265 60% 55%)' },
+  keyboard:  { label: 'Bàn phím',   glyph: '⌨', color: 'hsl(160 55% 45%)' },
+  mouse:     { label: 'Chuột',      glyph: '◉',  color: 'hsl(35 90% 50%)' },
+  headphone: { label: 'Tai nghe',   glyph: '○',  color: 'hsl(310 60% 55%)' },
+  phone:     { label: 'Điện thoại', glyph: '▢',  color: 'hsl(15 80% 55%)' },
+  tablet:    { label: 'Tablet',     glyph: '▣',  color: 'hsl(195 80% 45%)' },
+  other:     { label: 'Khác',       glyph: '◆',  color: 'hsl(220 15% 50%)' },
+}
+
+type BadgeVariant = 'gray' | 'primary' | 'green' | 'red' | 'amber' | 'sky' | 'violet'
+
+const ASSET_STATUS_META: Record<AssetStatus, { label: string; variant: BadgeVariant }> = {
+  available:   { label: 'Sẵn sàng',  variant: 'green'   },
+  in_use:      { label: 'Đang dùng', variant: 'primary'  },
+  maintenance: { label: 'Bảo trì',   variant: 'amber'    },
+  broken:      { label: 'Hỏng',      variant: 'red'      },
+}
+
+const ASSET_REQUESTS: AssetRequest[] = [
+  { id: 1, asset: 'MacBook Air M2',  user: 'Ngô Thanh Tùng', note: 'Cần laptop dự phòng cho onboarding',  return: '15/06/2026', submitted: '2 giờ trước',  status: 'pending'   },
+  { id: 2, asset: 'iPad Air',        user: 'Đặng Thị Hồng',  note: 'Demo cho khách hàng tuần sau',         return: '30/05/2026', submitted: 'Hôm qua',      status: 'pending'   },
+  { id: 3, asset: 'LG 27UP850',      user: 'Phan Văn Cường', note: 'Setup workspace mới ở Đà Nẵng',        return: '—',          submitted: '3 ngày trước', status: 'approved'  },
+  { id: 4, asset: 'Sony WH-1000XM5', user: 'Lý Quỳnh Anh',  note: 'Tai nghe cũ hỏng',                     return: '—',          submitted: '1 tuần trước', status: 'completed' },
+]
+
+const formatVND = (v: number) => v.toLocaleString('vi-VN') + ' đ'
+
+// ── Store ──────────────────────────────────────────────────────────────────────
 const assetStore = useAssetStore()
 onMounted(() => { assetStore.fetchAssets(); assetStore.fetchAssetTypes() })
 
@@ -62,9 +119,7 @@ function mapAssetRow(r: AssetRow): Asset {
   }
 }
 
-const allAssets = computed<Asset[]>(() =>
-  assetStore.assets.length > 0 ? assetStore.assets.map(mapAssetRow) : ASSETS
-)
+const allAssets = computed<Asset[]>(() => assetStore.assets.map(mapAssetRow))
 
 const statusOpts = [
   { value: 'all', label: 'Tất cả trạng thái' },
@@ -144,6 +199,8 @@ function submitRequest() {
 
     <!-- ALL ASSETS -->
     <template v-if="tab === 'all'">
+      <ErrorBanner v-if="assetStore.error" :message="assetStore.error" @retry="assetStore.fetchAssets()" />
+
       <!-- Stats -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MiniStat label="Tổng tài sản" :value="stats.total" sublabel="Đang quản lý" accent="primary" :delay="40" />
@@ -203,8 +260,8 @@ function submitRequest() {
               </div>
             </div>
           </button>
-          <div v-if="filtered.length === 0" class="col-span-full py-16 text-center text-muted-foreground">
-            <Search :size="36" class="mx-auto mb-2 opacity-30" />Không tìm thấy tài sản phù hợp
+          <div v-if="!assetStore.loading && filtered.length === 0" class="col-span-full">
+            <EmptyState :icon="Package" title="Không có tài sản nào" description="Không tìm thấy tài sản phù hợp với bộ lọc." />
           </div>
         </div>
       </template>
@@ -225,28 +282,33 @@ function submitRequest() {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="a in filtered" :key="a.id" class="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors cursor-pointer" @click="selectedAsset = a">
-                  <td class="py-3 px-5">
-                    <div class="flex items-center gap-2.5">
-                      <span class="h-8 w-8 rounded-md flex items-center justify-center shrink-0" :style="{ background: `${CATEGORY_META[a.category].color}18`, color: CATEGORY_META[a.category].color }">{{ CATEGORY_META[a.category].glyph }}</span>
-                      <div>
-                        <p class="font-semibold text-foreground">{{ a.name }}</p>
-                        <p class="text-[11px] font-mono text-muted-foreground">{{ a.id }} · {{ a.serial }}</p>
+                <SkeletonRow v-if="assetStore.loading" :cols="6" :rows="5" />
+                <tr v-else-if="filtered.length === 0">
+                  <td colspan="6" class="p-0">
+                    <EmptyState :icon="Package" title="Không có tài sản nào" description="Không tìm thấy tài sản phù hợp với bộ lọc." />
+                  </td>
+                </tr>
+                <template v-else>
+                  <tr v-for="a in filtered" :key="a.id" class="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors cursor-pointer" @click="selectedAsset = a">
+                    <td class="py-3 px-5">
+                      <div class="flex items-center gap-2.5">
+                        <span class="h-8 w-8 rounded-md flex items-center justify-center shrink-0" :style="{ background: `${CATEGORY_META[a.category].color}18`, color: CATEGORY_META[a.category].color }">{{ CATEGORY_META[a.category].glyph }}</span>
+                        <div>
+                          <p class="font-semibold text-foreground">{{ a.name }}</p>
+                          <p class="text-[11px] font-mono text-muted-foreground">{{ a.id }} · {{ a.serial }}</p>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td class="py-3 px-3 text-foreground/80">{{ a.branch }}</td>
-                  <td class="py-3 px-3">
-                    <span v-if="a.user" class="flex items-center gap-1.5"><Avatar :name="a.user" :size="22" />{{ a.user }}</span>
-                    <span v-else class="italic text-muted-foreground">—</span>
-                  </td>
-                  <td class="py-3 px-3 text-center"><Badge :variant="ASSET_STATUS_META[a.status].variant" dot>{{ ASSET_STATUS_META[a.status].label }}</Badge></td>
-                  <td class="py-3 px-3 text-right font-bold tabular-nums text-primary">{{ formatVND(a.value) }}</td>
-                  <td class="py-3 px-5 font-mono text-muted-foreground text-[12px]">{{ a.date }}</td>
-                </tr>
-                <tr v-if="filtered.length === 0">
-                  <td colspan="6" class="py-14 text-center text-muted-foreground"><Search :size="30" class="mx-auto mb-2 opacity-30" />Không tìm thấy tài sản phù hợp</td>
-                </tr>
+                    </td>
+                    <td class="py-3 px-3 text-foreground/80">{{ a.branch }}</td>
+                    <td class="py-3 px-3">
+                      <span v-if="a.user" class="flex items-center gap-1.5"><Avatar :name="a.user" :size="22" />{{ a.user }}</span>
+                      <span v-else class="italic text-muted-foreground">—</span>
+                    </td>
+                    <td class="py-3 px-3 text-center"><Badge :variant="ASSET_STATUS_META[a.status].variant" dot>{{ ASSET_STATUS_META[a.status].label }}</Badge></td>
+                    <td class="py-3 px-3 text-right font-bold tabular-nums text-primary">{{ formatVND(a.value) }}</td>
+                    <td class="py-3 px-5 font-mono text-muted-foreground text-[12px]">{{ a.date }}</td>
+                  </tr>
+                </template>
               </tbody>
             </table>
           </div>
@@ -261,7 +323,7 @@ function submitRequest() {
     <template v-if="tab === 'mine'">
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 rise">
         <button
-          v-for="(a, i) in ASSETS.filter(x => x.user === 'Nguyễn Văn An')" :key="a.id"
+          v-for="(a, i) in allAssets.filter(a => a.user === 'Nguyễn Văn An')" :key="a.id"
           class="card-surface text-left p-4 space-y-3 hover:shadow-md transition-all"
           :style="`animation-delay: ${i * 40}ms`"
           @click="selectedAsset = a"
@@ -276,7 +338,7 @@ function submitRequest() {
           </div>
           <div class="text-[11.5px] text-muted-foreground font-mono">Cấp ngày: {{ a.date }}</div>
         </button>
-        <div v-if="!ASSETS.some(x => x.user === 'Nguyễn Văn An')" class="col-span-full py-16 text-center text-muted-foreground">
+        <div v-if="!allAssets.some(a => a.user === 'Nguyễn Văn An')" class="col-span-full py-16 text-center text-muted-foreground">
           Bạn chưa được gán tài sản nào.
         </div>
       </div>
