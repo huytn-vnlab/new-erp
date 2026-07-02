@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { FileText, Plus, X, Check, ChevronDown, ChevronRight, Trash2 } from 'lucide-vue-next'
+import { FileText, Plus, X, Check, ChevronDown, ChevronRight, Trash2, ClipboardList } from 'lucide-vue-next'
 import PageHeader from '~/components/layout/PageHeader.vue'
 import Btn from '~/components/base/Button.vue'
 import MiniStat from '~/components/base/MiniStat.vue'
@@ -11,17 +11,90 @@ import FilterBar from '~/components/base/FilterBar.vue'
 import FieldInput from '~/components/base/FieldInput.vue'
 import SectionCard from '~/components/home/SectionCard.vue'
 import LineChart from '~/components/charts/LineChart.vue'
-import {
-  EVALUATIONS, EVAL_SECTIONS, EVAL_STATUS_META, RANK_COLOR, STARTER_GOALS, EVAL_PROJECT_OPTIONS,
-  rankFromScore, weightedTotal, totalScore,
-  type Evaluation, type EvalSectionKey,
-} from '~/mocks/evaluation'
+import SkeletonRow from '~/components/base/SkeletonRow.vue'
+import EmptyState from '~/components/base/EmptyState.vue'
+import ErrorBanner from '~/components/base/ErrorBanner.vue'
 import { useEvaluationStore } from '~/stores/evaluation'
+
+// ── Inlined from mocks/evaluation ──────────────────────────────────────────
+type EvalStatus = 'pending' | 'draft' | 'submitted'
+type EvalSectionKey = 'common' | 'personal' | 'project' | 'other'
+type BadgeVariant = 'gray' | 'primary' | 'green' | 'red' | 'amber' | 'sky' | 'violet'
+
+const EVAL_SECTIONS: Array<{ key: EvalSectionKey; label: string; desc: string; weight: number; accent: string }> = [
+  { key: 'common',   label: 'Mục tiêu chung',   desc: 'Áp dụng cho toàn bộ nhân viên',   weight: 15, accent: 'hsl(var(--primary))' },
+  { key: 'personal', label: 'Mục tiêu cá nhân', desc: 'Phát triển cá nhân trong kỳ',     weight: 25, accent: 'hsl(265 60% 55%)' },
+  { key: 'project',  label: 'Mục tiêu dự án',   desc: 'Đóng góp vào các dự án cụ thể',   weight: 55, accent: 'hsl(160 60% 45%)' },
+  { key: 'other',    label: 'Mục tiêu khác',    desc: 'Đóng góp ngoài kế hoạch',         weight: 5,  accent: 'hsl(38 92% 50%)' },
+]
+
+const EVAL_STATUS_META: Record<EvalStatus, { label: string; variant: BadgeVariant; dot: boolean }> = {
+  pending:   { label: 'Chưa bắt đầu', variant: 'gray',  dot: true },
+  draft:     { label: 'Nháp',          variant: 'amber', dot: true },
+  submitted: { label: 'Đã gửi',        variant: 'green', dot: true },
+}
+
+const RANK_COLOR: Record<string, string> = {
+  S: '#0ea5e9', A: '#22c55e', B: '#a3a3a3', C: '#eab308', D: '#f97316', E: '#ef4444',
+}
+
+function rankFromScore(s: number): string {
+  return s >= 9 ? 'S' : s >= 8 ? 'A' : s >= 6.5 ? 'B' : s >= 5 ? 'C' : s >= 3.5 ? 'D' : 'E'
+}
+
+function evalStatusBadge(status: number): { label: string; variant: BadgeVariant } {
+  if (status === 1) return { label: 'Đã gửi', variant: 'green' }
+  if (status === 2) return { label: 'Nháp', variant: 'amber' }
+  return { label: 'Chưa bắt đầu', variant: 'gray' }
+}
+
+type GoalRow = {
+  id: string; weight: number | ''; name: string; actual: number | ''; result: number | ''
+  target?: string; detail?: string; project?: string
+}
+type FormGoalRow = { id: string; weight: string; name: string; actual: string; result: string; target?: string; detail?: string; project?: string }
+type FormGoals = Record<EvalSectionKey, FormGoalRow[]>
+
+const STARTER_GOALS: Record<string, GoalRow[]> = {
+  common: [
+    { id: 'c1', weight: 10, name: 'Hoàn thành mục tiêu OKR công ty Q2', target: 'Tham gia ít nhất 80% các OKR initiative được giao', actual: '', result: '' },
+    { id: 'c2', weight: 5,  name: 'Đóng góp vào culture công ty', target: 'Tham dự đầy đủ All Hands + ít nhất 2 hoạt động team building', actual: '', result: '' },
+  ],
+  personal: [
+    { id: 'p1', weight: 15, name: 'Viết blog kỹ thuật', target: '4 bài blog (≥1500 từ) trên Medium công ty trong quý', actual: '', result: '' },
+    { id: 'p2', weight: 10, name: 'Học tiếng Nhật', target: 'Hoàn thành chương trình N2 và thi thử đạt ≥70%', actual: '', result: '' },
+  ],
+  project: [
+    { id: 'pr1', weight: 25, project: 'Cổng thanh toán XYZ', name: 'Hoàn thành module checkout v2', actual: '', result: '' },
+    { id: 'pr2', weight: 20, project: 'Hệ thống CRM nội bộ',  name: 'Mentor 2 junior dev và review ≥50 PR', actual: '', result: '' },
+    { id: 'pr3', weight: 10, project: 'Module báo cáo BI',    name: 'Thiết kế kiến trúc data pipeline', actual: '', result: '' },
+  ],
+  other: [
+    { id: 'o1', weight: 5, name: 'Phỏng vấn ứng viên', detail: 'Tham gia ≥5 buổi phỏng vấn kỹ thuật cho team Frontend', actual: '', result: '' },
+  ],
+}
+
+const EVAL_PROJECT_OPTIONS = [
+  'Cổng thanh toán XYZ', 'Hệ thống CRM nội bộ', 'App giao đồ ăn FoodGo',
+  'Quản lý kho ABC v2', 'Module báo cáo BI', 'Mobile companion app', 'Cổng tích hợp API v3',
+]
+// ───────────────────────────────────────────────────────────────────────────
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
 const auth = useAuth()
 const evalStore = useEvaluationStore()
+
+// ── List state — declared BEFORE onMounted/watch to avoid TDZ errors ──
+const year = ref('2026')
+const quarter = ref('2')
+const tab = ref<'manage' | 'mine' | 'reports'>('manage')
+const search = ref('')
+const statusF = ref('all')
+const rankF = ref('all')
+const openEval = ref<any>(null)
+const showCreate = ref(false)
+
 onMounted(() => evalStore.fetchEvaluations({
   year: parseInt(year.value),
   quarter: parseInt(quarter.value),
@@ -33,16 +106,6 @@ watch([year, quarter], () => {
 
 const ME = computed(() => auth.user.value?.name ?? 'Nguyễn Văn An')
 
-// ── List state ──
-const year = ref('2026')
-const quarter = ref('2')
-const tab = ref<'manage' | 'mine' | 'reports'>('manage')
-const search = ref('')
-const statusF = ref('all')
-const rankF = ref('all')
-const openEval = ref<Evaluation | null>(null)
-const showCreate = ref(false)
-
 // ── Form state ──
 const formMode = ref<'self' | 'supervisor'>('self')
 const formYear = ref('2026')
@@ -50,9 +113,6 @@ const formQuarter = ref('2')
 const commentSelf = ref('Tự đánh giá: kỳ này em tập trung mạnh vào dự án Cổng thanh toán XYZ, hoàn thành module checkout đúng deadline. Blog cá nhân vẫn cần đẩy mạnh hơn — mới ra được 2 bài.')
 const commentSup = ref('')
 const sectionCollapsed = ref<Record<string, boolean>>({ common: false, personal: false, project: false, other: false })
-
-type FormGoalRow = { id: string; weight: string; name: string; actual: string; result: string; target?: string; detail?: string; project?: string }
-type FormGoals = Record<EvalSectionKey, FormGoalRow[]>
 
 const goals = reactive<FormGoals>(
   Object.fromEntries(
@@ -74,33 +134,34 @@ const rankOpts = [
   ...['S', 'A', 'B', 'C', 'D', 'E'].map(r => ({ value: r, label: `Rank ${r}` })),
 ]
 
-const allRows = computed(() => EVALUATIONS.filter(e => String(e.year) === year.value && String(e.q) === quarter.value))
+const allRows = computed(() => evalStore.evaluations)
 
 const filtered = computed(() =>
   allRows.value.filter(e => {
-    if (tab.value === 'mine' && e.user !== ME.value) return false
-    if (search.value && !e.user.toLowerCase().includes(search.value.toLowerCase())) return false
-    if (statusF.value !== 'all' && e.status !== statusF.value) return false
-    const r = rankFromScore(totalScore(e))
-    if (rankF.value !== 'all' && r !== rankF.value) return false
+    if (tab.value === 'mine' && e.full_name !== ME.value) return false
+    if (search.value && !e.full_name.toLowerCase().includes(search.value.toLowerCase())) return false
     return true
   })
 )
 
 const stats = computed(() => {
-  const submitted = allRows.value.filter(e => e.status === 'submitted')
+  const rows = allRows.value
+  const submitted = rows.filter(e => e.status === 1)
   const submittedCount = submitted.length
-  const completionPct = Math.round((submittedCount / Math.max(allRows.value.length, 1)) * 100)
-  const avgScore = submittedCount > 0 ? (submitted.reduce((a, e) => a + totalScore(e), 0) / submittedCount).toFixed(1) : '0'
-  const topS = submitted.filter(e => totalScore(e) >= 9).length
-  const needNudge = allRows.value.length - submittedCount
-  return { submittedCount, completionPct, avgScore, topS, needNudge, total: allRows.value.length }
+  const total = rows.length
+  const completionPct = Math.round((submittedCount / Math.max(total, 1)) * 100)
+  const avgScore = submittedCount > 0
+    ? (submitted.reduce((a, e) => a + (e.score ?? 0), 0) / submittedCount / 10).toFixed(1)
+    : '0'
+  const topS = submitted.filter(e => (e.score ?? 0) >= 90).length
+  const needNudge = total - submittedCount
+  return { submittedCount, completionPct, avgScore, topS, needNudge, total }
 })
 
 const rankDist = computed(() => {
   const dist: Record<string, number> = { S: 0, A: 0, B: 0, C: 0, D: 0, E: 0 }
-  allRows.value.filter(e => e.status === 'submitted').forEach(e => {
-    const k = rankFromScore(totalScore(e))
+  allRows.value.filter(e => e.status === 1).forEach(e => {
+    const k = rankFromScore((e.score ?? 0) / 10)
     dist[k] = (dist[k] ?? 0) + 1
   })
   return dist
@@ -108,22 +169,18 @@ const rankDist = computed(() => {
 const maxRankDist = computed(() => Math.max(...Object.values(rankDist.value), 1))
 
 const topPerformers = computed(() =>
-  [...allRows.value.filter(e => e.status === 'submitted')]
-    .sort((a, b) => totalScore(b) - totalScore(a))
+  [...allRows.value.filter(e => e.status === 1)]
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
     .slice(0, 5)
 )
 
-const sectionAverages = computed(() => {
-  const subs = allRows.value.filter(e => e.status === 'submitted')
-  return EVAL_SECTIONS.map(s => ({
-    ...s,
-    avg: subs.length === 0 ? 0 : Math.round(subs.reduce((a, e) => a + (e.pct[s.key] || 0), 0) / subs.length),
-  }))
-})
+const sectionAverages = computed(() =>
+  EVAL_SECTIONS.map(s => ({ ...s, avg: 0 }))
+)
 
 const tabCounts = computed(() => ({
   manage: allRows.value.length,
-  mine: allRows.value.filter(e => e.user === ME.value).length,
+  mine: allRows.value.filter(e => e.full_name === ME.value).length,
 }))
 
 // ── Computed: form totals ──
@@ -135,7 +192,7 @@ const formRank = computed(() => rankFromScore(formRank10.value))
 const weightDeficit = computed(() => 100 - totalWeight.value)
 
 // EvalDetail helpers
-const detailTotal = computed(() => openEval.value ? totalScore(openEval.value) : 0)
+const detailTotal = computed(() => openEval.value ? ((openEval.value.score ?? 0) / 10) : 0)
 const detailRank = computed(() => rankFromScore(detailTotal.value))
 const DONUT_R = 48
 const DONUT_C = 2 * Math.PI * DONUT_R
@@ -546,6 +603,9 @@ function sectionGridCols(key: EvalSectionKey): string {
         <span class="text-[12px] text-muted-foreground">{{ filtered.length }} / {{ allRows.length }} phiếu</span>
       </FilterBar>
 
+      <!-- Error banner -->
+      <ErrorBanner v-if="evalStore.error" :message="evalStore.error" @retry="evalStore.fetchEvaluations()" />
+
       <div class="card-surface overflow-hidden rise" style="animation-delay: 240ms">
         <div class="overflow-x-auto">
           <table class="w-full text-[13px]" style="min-width: 820px">
@@ -561,54 +621,58 @@ function sectionGridCols(key: EvalSectionKey): string {
               </tr>
             </thead>
             <tbody>
-              <tr
-                v-for="e in filtered" :key="e.id"
-                class="border-b border-border/60 last:border-0 hover:bg-muted/30 cursor-pointer transition-colors"
-                @click="openEval = e"
-              >
-                <td class="py-3 px-5">
-                  <div class="flex items-center gap-3">
-                    <Avatar :name="e.user" :size="32" />
-                    <div>
-                      <p class="font-semibold text-foreground">{{ e.user }}</p>
-                      <p class="text-[11.5px] text-muted-foreground">{{ e.role }} · {{ e.branch }}</p>
-                    </div>
-                  </div>
+              <SkeletonRow v-if="evalStore.loading" :cols="7" :rows="5" />
+              <tr v-else-if="filtered.length === 0">
+                <td colspan="7" class="p-0">
+                  <EmptyState :icon="ClipboardList" title="Không có phiếu đánh giá" description="Không có phiếu đánh giá nào phù hợp với bộ lọc hiện tại." />
                 </td>
-                <td class="py-3 px-3 text-foreground/85">{{ e.reviewer }}</td>
-                <td class="py-3 px-3">
-                  <div class="flex items-end gap-1.5 h-7">
-                    <div v-for="s in EVAL_SECTIONS" :key="s.key" class="flex flex-col items-center gap-0.5">
-                      <div class="w-4 rounded-sm flex items-end" style="height: 22px">
-                        <div
-                          class="w-full rounded-sm"
-                          :style="{ height: `${Math.max(e.pct[s.key] || 0, 6)}%`, background: s.accent, opacity: (e.pct[s.key] || 0) >= 80 ? 1 : 0.55 }"
-                          :title="`${s.label}: ${e.pct[s.key] || 0}%`"
-                        />
+              </tr>
+              <template v-else>
+                <tr
+                  v-for="e in filtered" :key="e.id"
+                  class="border-b border-border/60 last:border-0 hover:bg-muted/30 cursor-pointer transition-colors"
+                  @click="openEval = e"
+                >
+                  <td class="py-3 px-5">
+                    <div class="flex items-center gap-3">
+                      <Avatar :name="e.full_name" :size="32" />
+                      <div>
+                        <p class="font-semibold text-foreground">{{ e.full_name }}</p>
+                        <p class="text-[11.5px] text-muted-foreground">{{ e.branch }}</p>
                       </div>
                     </div>
-                  </div>
-                </td>
-                <td class="py-3 px-3 text-center">
-                  <span class="font-bold tabular-nums text-foreground">{{ weightedTotal(e).toFixed(1) }}</span>
-                  <span class="text-muted-foreground text-[11px]">/100</span>
-                </td>
-                <td class="py-3 px-3 text-center">
-                  <span v-if="e.status === 'submitted'"
-                    class="inline-flex items-center justify-center w-7 h-7 rounded-md text-[12px] font-bold text-white tabular-nums"
-                    :style="{ background: RANK_COLOR[rankFromScore(totalScore(e))] }">
-                    {{ rankFromScore(totalScore(e)) }}
-                  </span>
-                  <span v-else class="text-muted-foreground">—</span>
-                </td>
-                <td class="py-3 px-3 text-center">
-                  <Badge :variant="EVAL_STATUS_META[e.status].variant" dot>{{ EVAL_STATUS_META[e.status].label }}</Badge>
-                </td>
-                <td class="py-3 px-5 text-right text-muted-foreground text-[12px]">{{ e.updated }}</td>
-              </tr>
-              <tr v-if="filtered.length === 0">
-                <td colspan="7" class="py-14 text-center text-muted-foreground">Không có phiếu phù hợp</td>
-              </tr>
+                  </td>
+                  <td class="py-3 px-3 text-foreground/85">{{ e.updated_by_name ?? '' }}</td>
+                  <td class="py-3 px-3">
+                    <div class="flex items-end gap-1.5 h-7">
+                      <div v-for="s in EVAL_SECTIONS" :key="s.key" class="flex flex-col items-center gap-0.5">
+                        <div class="w-4 rounded-sm flex items-end" style="height: 22px">
+                          <div
+                            class="w-full rounded-sm"
+                            :style="{ height: '6%', background: s.accent, opacity: 0.3 }"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-3 text-center">
+                    <span class="font-bold tabular-nums text-foreground">{{ e.score ?? 0 }}</span>
+                    <span class="text-muted-foreground text-[11px]">/100</span>
+                  </td>
+                  <td class="py-3 px-3 text-center">
+                    <span v-if="e.status === 1"
+                      class="inline-flex items-center justify-center w-7 h-7 rounded-md text-[12px] font-bold text-white tabular-nums"
+                      :style="{ background: RANK_COLOR[rankFromScore((e.score ?? 0) / 10)] }">
+                      {{ rankFromScore((e.score ?? 0) / 10) }}
+                    </span>
+                    <span v-else class="text-muted-foreground">—</span>
+                  </td>
+                  <td class="py-3 px-3 text-center">
+                    <Badge :variant="evalStatusBadge(e.status).variant" dot>{{ evalStatusBadge(e.status).label }}</Badge>
+                  </td>
+                  <td class="py-3 px-5 text-right text-muted-foreground text-[12px]">{{ e.last_updated ?? '' }}</td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </div>
@@ -659,16 +723,16 @@ function sectionGridCols(key: EvalSectionKey): string {
             @click="openEval = e"
           >
             <span class="w-6 text-center text-[12px] font-bold tabular-nums text-muted-foreground">#{{ i + 1 }}</span>
-            <Avatar :name="e.user" :size="32" />
+            <Avatar :name="e.full_name" :size="32" />
             <div class="flex-1 min-w-0">
-              <p class="font-semibold text-foreground truncate">{{ e.user }}</p>
-              <p class="text-[11.5px] text-muted-foreground">{{ e.role }} · {{ e.branch }}</p>
+              <p class="font-semibold text-foreground truncate">{{ e.full_name }}</p>
+              <p class="text-[11.5px] text-muted-foreground">{{ e.branch }}</p>
             </div>
             <div class="text-right">
-              <p class="font-bold tabular-nums text-foreground text-[15px]">{{ totalScore(e) }}<span class="text-muted-foreground text-[10.5px] font-normal">/10</span></p>
+              <p class="font-bold tabular-nums text-foreground text-[15px]">{{ ((e.score ?? 0) / 10).toFixed(1) }}<span class="text-muted-foreground text-[10.5px] font-normal">/10</span></p>
             </div>
             <span class="inline-flex items-center justify-center w-7 h-7 rounded-md text-[11px] font-bold text-white"
-              :style="{ background: RANK_COLOR[rankFromScore(totalScore(e))] }">{{ rankFromScore(totalScore(e)) }}</span>
+              :style="{ background: RANK_COLOR[rankFromScore((e.score ?? 0) / 10)] }">{{ rankFromScore((e.score ?? 0) / 10) }}</span>
           </li>
         </ol>
       </SectionCard>
@@ -691,13 +755,13 @@ function sectionGridCols(key: EvalSectionKey): string {
         <!-- Header -->
         <div class="p-5 border-b border-border/70 flex items-start justify-between gap-4 shrink-0">
           <div class="flex items-center gap-4 min-w-0">
-            <Avatar :name="openEval.user" :size="52" />
+            <Avatar :name="openEval.full_name ?? ''" :size="52" />
             <div class="min-w-0">
-              <h3 class="font-bold text-[18px] text-foreground font-heading truncate">{{ openEval.user }}</h3>
-              <p class="text-[12.5px] text-muted-foreground truncate">{{ openEval.role }} · {{ openEval.branch }}</p>
+              <h3 class="font-bold text-[18px] text-foreground font-heading truncate">{{ openEval.full_name }}</h3>
+              <p class="text-[12.5px] text-muted-foreground truncate">{{ openEval.branch }}</p>
               <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
-                <Badge variant="primary">{{ openEval.period }}</Badge>
-                <Badge :variant="EVAL_STATUS_META[openEval.status].variant" dot>{{ EVAL_STATUS_META[openEval.status].label }}</Badge>
+                <Badge variant="primary">Q{{ openEval.quarter }}/{{ openEval.year }}</Badge>
+                <Badge :variant="evalStatusBadge(openEval.status).variant" dot>{{ evalStatusBadge(openEval.status).label }}</Badge>
               </div>
             </div>
           </div>
@@ -720,7 +784,7 @@ function sectionGridCols(key: EvalSectionKey): string {
                 />
               </svg>
               <div class="absolute inset-0 flex flex-col items-center justify-center">
-                <span class="text-[28px] font-bold font-heading tabular-nums leading-none">{{ detailTotal }}</span>
+                <span class="text-[28px] font-bold font-heading tabular-nums leading-none">{{ detailTotal.toFixed(1) }}</span>
                 <span class="text-[10.5px] text-muted-foreground">/ 10</span>
               </div>
             </div>
@@ -733,7 +797,7 @@ function sectionGridCols(key: EvalSectionKey): string {
                   {{ detailRank === 'S' ? 'Xuất sắc' : detailRank === 'A' ? 'Tốt' : detailRank === 'B' ? 'Đạt yêu cầu' : detailRank === 'C' ? 'Trung bình' : detailRank === 'D' ? 'Cần cải thiện' : 'Yếu' }}
                 </span>
               </div>
-              <p class="text-[11.5px] text-muted-foreground mt-2">Đánh giá bởi <strong class="text-foreground">{{ openEval.reviewer }}</strong> · {{ openEval.updated }}</p>
+              <p class="text-[11.5px] text-muted-foreground mt-2">Đánh giá bởi <strong class="text-foreground">{{ openEval.updated_by_name ?? '—' }}</strong> · {{ openEval.last_updated ?? '' }}</p>
             </div>
           </div>
 
@@ -754,18 +818,17 @@ function sectionGridCols(key: EvalSectionKey): string {
                     </div>
                   </div>
                   <div class="text-right shrink-0">
-                    <span class="font-bold tabular-nums text-foreground text-[15px]">{{ openEval.pct[s.key] || 0 }}<span class="text-muted-foreground text-[10.5px] font-normal">%</span></span>
-                    <span class="block text-[10.5px] font-mono" :style="{ color: s.accent }">{{ +(s.weight * (openEval.pct[s.key] || 0) / 100).toFixed(1) }} điểm</span>
+                    <span class="font-bold tabular-nums text-foreground text-[15px]">—</span>
                   </div>
                 </div>
                 <div class="h-2 rounded-full bg-muted overflow-hidden">
-                  <div class="h-full rounded-full" :style="{ width: `${openEval.pct[s.key] || 0}%`, background: s.accent, opacity: (openEval.pct[s.key] || 0) >= 80 ? 1 : 0.7 }" />
+                  <div class="h-full rounded-full" :style="{ width: '0%', background: s.accent, opacity: 0.4 }" />
                 </div>
               </li>
             </ul>
             <div class="flex items-center justify-between mt-4 pt-3 border-t border-border/60">
               <span class="text-[12px] font-semibold text-muted-foreground uppercase tracking-wide">Tổng điểm đạt</span>
-              <span class="font-bold tabular-nums text-foreground text-[16px]">{{ weightedTotal(openEval).toFixed(1) }}<span class="text-muted-foreground text-[11px] font-normal">/100</span></span>
+              <span class="font-bold tabular-nums text-foreground text-[16px]">{{ openEval.score ?? 0 }}<span class="text-muted-foreground text-[11px] font-normal">/100</span></span>
             </div>
           </div>
 
@@ -775,12 +838,12 @@ function sectionGridCols(key: EvalSectionKey): string {
             <blockquote class="border-l-2 border-primary/40 pl-3 text-[13px] text-foreground/85 italic" style="line-height: 1.55">
               "{{ openEval.comment }}"
             </blockquote>
-            <p class="text-[11px] text-muted-foreground mt-2">— {{ openEval.reviewer }}</p>
+            <p class="text-[11px] text-muted-foreground mt-2">— {{ openEval.updated_by_name ?? '' }}</p>
           </div>
 
           <!-- History -->
           <div class="p-5">
-            <h4 class="section-title mb-3">Lịch sử của {{ openEval.user.split(' ').slice(-1)[0] }}</h4>
+            <h4 class="section-title mb-3">Lịch sử của {{ (openEval.full_name ?? '').split(' ').slice(-1)[0] }}</h4>
             <div class="space-y-2 text-[13px]">
               <div v-for="(h, hi) in HISTORY_ROWS" :key="hi" class="flex items-center gap-3 p-2 -mx-2 rounded-md hover:bg-muted/30">
                 <span class="font-mono text-[11.5px] text-muted-foreground w-16">{{ h.p }}</span>

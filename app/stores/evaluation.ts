@@ -1,17 +1,31 @@
 import { defineStore } from 'pinia'
-import type { EvaluationRow, Pagination } from '~/types'
+import type { Pagination } from '~/types'
+
+export interface EvaluationApiRow {
+  id: number
+  full_name: string
+  quarter: number
+  year: number
+  branch: string
+  status: number
+  score?: number
+  updated_by_name?: string
+  last_updated?: string
+  [key: string]: unknown
+}
 
 interface EvalListResponse {
-  evaluations: EvaluationRow[]
+  evaluations: EvaluationApiRow[]
   pagination: Pagination
 }
 
 export const useEvaluationStore = defineStore('evaluation', () => {
   const { post, get } = useApi()
 
-  const evaluations = ref<EvaluationRow[]>([])
+  const evaluations = ref<EvaluationApiRow[]>([])
   const pagination = ref<Pagination>({ current_page: 1, total_row: 0, row_per_page: 20 })
   const loading = ref(false)
+  const error = ref<string | null>(null)
 
   async function fetchEvaluations(params: {
     name?: string
@@ -22,6 +36,7 @@ export const useEvaluationStore = defineStore('evaluation', () => {
     current_page?: number
   } = {}) {
     loading.value = true
+    error.value = null
     try {
       const res = await post<EvalListResponse>('/api/targeteval/search-evaluation-list', {
         name: params.name ?? '',
@@ -37,7 +52,11 @@ export const useEvaluationStore = defineStore('evaluation', () => {
       if (res.status === 1 && res.data) {
         evaluations.value = res.data.evaluations ?? []
         pagination.value = res.data.pagination ?? pagination.value
+      } else {
+        error.value = res.message || 'Không thể tải dữ liệu đánh giá.'
       }
+    } catch {
+      error.value = 'Không thể tải dữ liệu. Vui lòng thử lại.'
     } finally {
       loading.value = false
     }
@@ -48,7 +67,7 @@ export const useEvaluationStore = defineStore('evaluation', () => {
   }
 
   return {
-    evaluations, pagination, loading,
+    evaluations, pagination, loading, error,
     fetchEvaluations, exportExcel,
   }
 })
