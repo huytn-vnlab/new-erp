@@ -9,6 +9,7 @@ import Btn from '~/components/base/Button.vue'
 import Badge from '~/components/base/Badge.vue'
 import Avatar from '~/components/base/Avatar.vue'
 import Select from '~/components/base/Select.vue'
+import ErrorBanner from '~/components/base/ErrorBanner.vue'
 
 import { useSettingsStore } from '~/stores/settings'
 
@@ -80,29 +81,33 @@ const branches = ref<BranchRow[]>([
   { id: 4, name: 'Osaka (Japan)',     address: '2-3-4 Namba, Osaka-shi',        phone: '+81 6 1234 5678' },
 ])
 const branchModal = reactive({ open: false, editing: false, editId: 0, form: { name: '', address: '', phone: '' } })
-const delModal = reactive<{ open: boolean; label: string; onConfirm: () => void }>({ open: false, label: '', onConfirm: () => {} })
+const branchNameError = ref('')
+const delModal = reactive<{ open: boolean; label: string; onConfirm: () => void | Promise<void> }>({ open: false, label: '', onConfirm: () => {} })
 
 function openDelModal(label: string, onConfirm: () => void) {
   Object.assign(delModal, { open: true, label, onConfirm })
 }
 
 function openBranchCreate() {
+  branchNameError.value = ''
   Object.assign(branchModal, { open: true, editing: false, editId: 0, form: { name: '', address: '', phone: '' } })
 }
 function openBranchEdit(r: BranchRow) {
+  branchNameError.value = ''
   Object.assign(branchModal, { open: true, editing: true, editId: r.id, form: { name: r.name, address: r.address, phone: r.phone } })
 }
 async function saveBranch() {
-  if (!branchModal.form.name.trim()) return
+  if (!branchModal.form.name.trim()) {
+    branchNameError.value = 'Vui lòng nhập tên chi nhánh.'
+    return
+  }
+  branchNameError.value = ''
   if (branchModal.editing) {
-    await settingsStore.editBranch(branchModal.editId, branchModal.form.name)
-    const idx = branches.value.findIndex(b => b.id === branchModal.editId)
-    if (idx >= 0) branches.value[idx] = { ...branches.value[idx]!, ...branchModal.form }
-    showToast('Đã cập nhật chi nhánh.')
+    const res = await settingsStore.editBranch(branchModal.editId, branchModal.form.name)
+    showToast(res.ok ? 'Đã cập nhật chi nhánh.' : (res.message || 'Cập nhật thất bại.'), res.ok ? 'ok' : 'err')
   } else {
-    await settingsStore.createBranch(branchModal.form.name)
-    branches.value.push({ id: Date.now(), name: branchModal.form.name, address: branchModal.form.address, phone: branchModal.form.phone })
-    showToast('Đã thêm chi nhánh mới.')
+    const res = await settingsStore.createBranch(branchModal.form.name)
+    showToast(res.ok ? 'Đã thêm chi nhánh mới.' : (res.message || 'Thêm thất bại.'), res.ok ? 'ok' : 'err')
   }
   branchModal.open = false
 }
@@ -130,14 +135,11 @@ function openJobEdit(r: JobRow) { Object.assign(jobModal, { open: true, editing:
 async function saveJob() {
   if (!jobModal.name.trim()) return
   if (jobModal.editing) {
-    await settingsStore.editJobTitle(jobModal.editId, jobModal.name)
-    const idx = jobTitles.value.findIndex(j => j.id === jobModal.editId)
-    if (idx >= 0) jobTitles.value[idx]!.name = jobModal.name
-    showToast('Đã cập nhật chức danh.')
+    const res = await settingsStore.editJobTitle(jobModal.editId, jobModal.name)
+    showToast(res.ok ? 'Đã cập nhật chức danh.' : (res.message || 'Cập nhật thất bại.'), res.ok ? 'ok' : 'err')
   } else {
-    await settingsStore.createJobTitle(jobModal.name)
-    jobTitles.value.push({ id: Date.now(), name: jobModal.name })
-    showToast('Đã thêm chức danh mới.')
+    const res = await settingsStore.createJobTitle(jobModal.name)
+    showToast(res.ok ? 'Đã thêm chức danh mới.' : (res.message || 'Thêm thất bại.'), res.ok ? 'ok' : 'err')
   }
   jobModal.open = false
 }
@@ -177,14 +179,11 @@ function openTechEdit(r: TechRow) { Object.assign(techModal, { open: true, editi
 async function saveTech() {
   if (!techModal.form.name.trim()) return
   if (techModal.editing) {
-    await settingsStore.editTechnology(techModal.editId, techModal.form)
-    const idx = technologies.value.findIndex(t => t.id === techModal.editId)
-    if (idx >= 0) Object.assign(technologies.value[idx]!, techModal.form)
-    showToast('Đã cập nhật công nghệ.')
+    const res = await settingsStore.editTechnology(techModal.editId, techModal.form)
+    showToast(res.ok ? 'Đã cập nhật công nghệ.' : (res.message || 'Cập nhật thất bại.'), res.ok ? 'ok' : 'err')
   } else {
-    await settingsStore.createTechnology(techModal.form)
-    technologies.value.push({ id: Date.now(), ...techModal.form })
-    showToast('Đã thêm: ' + techModal.form.name)
+    const res = await settingsStore.createTechnology(techModal.form)
+    showToast(res.ok ? 'Đã thêm: ' + techModal.form.name : (res.message || 'Thêm thất bại.'), res.ok ? 'ok' : 'err')
   }
   techModal.open = false
 }
@@ -219,11 +218,17 @@ const groupedHolidays = computed(() => {
 
 async function addHoliday() {
   if (!holidayModal.form.name || !holidayModal.form.date) return
-  await settingsStore.createHoliday(holidayModal.form)
-  holidays.value.push({ id: Date.now(), ...holidayModal.form })
-  showToast('Đã thêm: ' + holidayModal.form.name)
-  Object.assign(holidayModal.form, { name: '', date: '' })
-  holidayModal.open = false
+  const res = await settingsStore.createHoliday(holidayModal.form)
+  showToast(res.ok ? 'Đã thêm: ' + holidayModal.form.name : (res.message || 'Thêm thất bại.'), res.ok ? 'ok' : 'err')
+  if (res.ok) {
+    Object.assign(holidayModal.form, { name: '', date: '' })
+    holidayModal.open = false
+  }
+}
+
+async function deleteHolidayItem(h: HolidayRow) {
+  const res = await settingsStore.deleteHoliday(h.id)
+  showToast(res.ok ? 'Đã xoá ' + h.name + '.' : (res.message || 'Xoá thất bại.'), res.ok ? 'ok' : 'err')
 }
 
 // Sync local refs from store when data loads
@@ -355,6 +360,13 @@ function savePerm() {
     <!-- Content area -->
     <div class="flex-1 min-w-0">
 
+      <ErrorBanner
+        v-if="settingsStore.error"
+        :message="settingsStore.error"
+        class="mb-4"
+        @retry="settingsStore.loadAll()"
+      />
+
       <!-- ═══ Email org ═══ -->
       <div v-if="activeSection === 'email'">
         <div class="flex items-start justify-between gap-4 mb-6">
@@ -410,7 +422,7 @@ function savePerm() {
                     <Btn variant="ghost" size="xs" @click="openBranchEdit(r)">Sửa</Btn>
                     <button
                       class="h-7 px-2.5 rounded-md text-[12px] font-medium text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                      @click="openDelModal(r.name, () => { branches = branches.filter(b => b.id !== r.id); showToast('Đã xoá chi nhánh.') })"
+                      @click="openDelModal(r.name, async () => { const res = await settingsStore.deleteBranch(r.id); showToast(res.ok ? 'Đã xoá chi nhánh.' : (res.message || 'Xoá thất bại.'), res.ok ? 'ok' : 'err') })"
                     >Xoá</button>
                   </div>
                 </td>
@@ -476,7 +488,7 @@ function savePerm() {
                     <Btn variant="ghost" size="xs" @click="openJobEdit(r)">Sửa</Btn>
                     <button
                       class="h-7 px-2.5 rounded-md text-[12px] font-medium text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                      @click="openDelModal(r.name, () => { jobTitles = jobTitles.filter(j => j.id !== r.id); showToast('Đã xoá chức danh.') })"
+                      @click="openDelModal(r.name, async () => { const res = await settingsStore.deleteJobTitle(r.id); showToast(res.ok ? 'Đã xoá chức danh.' : (res.message || 'Xoá thất bại.'), res.ok ? 'ok' : 'err') })"
                     >Xoá</button>
                   </div>
                 </td>
@@ -528,7 +540,7 @@ function savePerm() {
                     <Btn variant="ghost" size="xs" @click="openTechEdit(r)">Sửa</Btn>
                     <button
                       class="h-7 px-2.5 rounded-md text-[12px] font-medium text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                      @click="openDelModal(r.name, () => { technologies = technologies.filter(t => t.id !== r.id); showToast('Đã xoá.') })"
+                      @click="openDelModal(r.name, async () => { const res = await settingsStore.deleteTechnology(r.id); showToast(res.ok ? 'Đã xoá.' : (res.message || 'Xoá thất bại.'), res.ok ? 'ok' : 'err') })"
                     >Xoá</button>
                   </div>
                 </td>
@@ -580,7 +592,7 @@ function savePerm() {
               </div>
               <button
                 class="h-7 px-2.5 rounded-md text-[12px] font-medium text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                @click="holidays = holidays.filter(x => x.id !== h.id); showToast('Đã xoá ' + h.name + '.')"
+                @click="deleteHolidayItem(h)"
               >Xoá</button>
             </div>
           </div>
@@ -788,6 +800,7 @@ function savePerm() {
           <div class="space-y-1.5">
             <label class="block text-[11px] font-semibold tracking-[0.09em] uppercase text-muted-foreground">Tên chi nhánh <span class="text-red-400">*</span></label>
             <input v-model="branchModal.form.name" placeholder="VD: Hà Nội, TP.HCM…" class="w-full h-9 px-3 rounded-lg border border-border bg-card text-[13px] text-foreground outline-none focus:border-primary/60" />
+            <p v-if="branchNameError" class="text-[11.5px] text-red-500">{{ branchNameError }}</p>
           </div>
           <div class="space-y-1.5">
             <label class="block text-[11px] font-semibold tracking-[0.09em] uppercase text-muted-foreground">Địa chỉ</label>
