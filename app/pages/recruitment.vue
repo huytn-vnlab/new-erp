@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { FileText, Plus, X, UserPlus } from 'lucide-vue-next'
+import { FileText, Plus, X, UserPlus, Briefcase } from 'lucide-vue-next'
 import PageHeader from '~/components/layout/PageHeader.vue'
 import Btn from '~/components/base/Button.vue'
 import MiniStat from '~/components/base/MiniStat.vue'
@@ -9,18 +9,76 @@ import Avatar from '~/components/base/Avatar.vue'
 import Select from '~/components/base/Select.vue'
 import FilterBar from '~/components/base/FilterBar.vue'
 import FieldInput from '~/components/base/FieldInput.vue'
-import {
-  JOBS, APPLICANTS, FALLBACK_APPLICANTS,
-  STAGE_META, JOB_STATUS_META, SRC_COLOR,
-  type Job, type JobStatus,
-} from '~/mocks/recruitment'
-import type { JobRow } from '~/types'
+import SkeletonRow from '~/components/base/SkeletonRow.vue'
+import EmptyState from '~/components/base/EmptyState.vue'
+import ErrorBanner from '~/components/base/ErrorBanner.vue'
+import type { JobRow, CvRow } from '~/types'
 import { useRecruitmentStore } from '~/stores/recruitment'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
 const recruitStore = useRecruitmentStore()
 onMounted(() => { recruitStore.fetchJobs(); recruitStore.fetchCvs() })
+
+type BadgeVariant = 'gray' | 'primary' | 'green' | 'red' | 'amber' | 'sky' | 'violet'
+type JobStatus = 'open' | 'closed' | 'draft'
+type ApplicantStage = 'review' | 'screened' | 'interview' | 'offer' | 'accepted' | 'rejected'
+
+type Job = {
+  id: number
+  title: string
+  branch: string
+  dept: string
+  count: number
+  applied: number
+  interviewed: number
+  offered: number
+  status: JobStatus
+  start: string
+  end: string
+  jp: string
+  salary: string
+  owner: string
+  desc: string
+}
+
+type Applicant = {
+  name: string
+  src: string
+  applied: string
+  stage: ApplicantStage
+  note?: string
+}
+
+const STAGE_META: Record<ApplicantStage, { label: string; variant: BadgeVariant; step: number }> = {
+  review:    { label: 'Xem hồ sơ',  variant: 'gray',   step: 1 },
+  screened:  { label: 'Đã screen',  variant: 'sky',    step: 2 },
+  interview: { label: 'Phỏng vấn',  variant: 'amber',  step: 3 },
+  offer:     { label: 'Gửi offer',  variant: 'violet', step: 4 },
+  accepted:  { label: 'Đã nhận',    variant: 'green',  step: 5 },
+  rejected:  { label: 'Từ chối',    variant: 'red',    step: 0 },
+}
+
+const JOB_STATUS_META: Record<JobStatus, { label: string; variant: BadgeVariant }> = {
+  open:   { label: 'Đang tuyển', variant: 'green' },
+  closed: { label: 'Đã đóng',   variant: 'gray'  },
+  draft:  { label: 'Nháp',      variant: 'amber' },
+}
+
+const SRC_COLOR: Record<string, string> = {
+  LinkedIn:  '#0a66c2',
+  JobStreet: '#e15a2b',
+  Referral:  '#7c3aed',
+  Website:   '#22c55e',
+}
+
+const FALLBACK_APPLICANTS: Applicant[] = [
+  { name: 'Nguyễn Minh Khoa', src: 'LinkedIn',  applied: '18/05/2026', stage: 'interview', note: '3Y exp, portfolio tốt.' },
+  { name: 'Trần Văn Phong',   src: 'JobStreet', applied: '15/05/2026', stage: 'review',    note: '4Y kinh nghiệm, không có JP.' },
+  { name: 'Phạm Thu Linh',    src: 'Referral',  applied: '10/05/2026', stage: 'offer',     note: '5Y, N3. Đề xuất 52M.' },
+  { name: 'Lê Đức Anh',       src: 'LinkedIn',  applied: '08/05/2026', stage: 'screened',  note: 'Fresh + intern 1Y.' },
+  { name: 'Hoàng Thị Tâm',    src: 'Website',   applied: '05/05/2026', stage: 'rejected',  note: 'Không pass test R1.' },
+]
 
 const JOB_STATUS_NUM_MAP: Record<number, JobStatus> = { 1: 'open', 2: 'closed', 3: 'draft' }
 
@@ -44,9 +102,9 @@ function mapJobRow(r: JobRow): Job {
   }
 }
 
-const allJobs = computed<Job[]>(() =>
-  recruitStore.jobs.length > 0 ? recruitStore.jobs.map(mapJobRow) : JOBS
-)
+const activeTab = ref<'jobs' | 'cvs'>('jobs')
+
+const allJobs = computed<Job[]>(() => recruitStore.jobs.map(mapJobRow))
 
 const search = ref('')
 const statusF = ref('all')
@@ -85,7 +143,7 @@ const stats = computed(() => {
 })
 
 function getApplicants(jobId: number, max: number) {
-  return (APPLICANTS[jobId] ?? FALLBACK_APPLICANTS).slice(0, max)
+  return FALLBACK_APPLICANTS.slice(0, max)
 }
 
 const FUNNEL_COLORS = [
@@ -114,6 +172,16 @@ function detailPipelineVal(j: Job, i: number): number {
 function pipelineBg(color: string): string {
   return color.endsWith(')') ? color.replace(')', ' / 0.07)') : color
 }
+
+// CV status label
+function cvStatusLabel(status: number): string {
+  const map: Record<number, string> = { 1: 'Đang xét', 2: 'Phỏng vấn', 3: 'Trúng tuyển', 4: 'Từ chối' }
+  return map[status] ?? 'Không rõ'
+}
+function cvStatusVariant(status: number): BadgeVariant {
+  const map: Record<number, BadgeVariant> = { 1: 'amber', 2: 'sky', 3: 'green', 4: 'red' }
+  return map[status] ?? 'gray'
+}
 </script>
 
 <template>
@@ -129,6 +197,9 @@ function pipelineBg(color: string): string {
       </template>
     </PageHeader>
 
+    <!-- Error banner -->
+    <ErrorBanner v-if="recruitStore.error" :message="recruitStore.error" @retry="recruitStore.fetchJobs()" />
+
     <!-- MiniStats -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <MiniStat label="Vị trí đang tuyển" :value="stats.open" :sublabel="`${stats.drafts} tin nháp chờ đăng`" accent="primary" :delay="40" />
@@ -137,86 +208,151 @@ function pipelineBg(color: string): string {
       <MiniStat label="Tỷ lệ offer" :value="`${stats.convRate}%`" :sublabel="`${stats.totalOffers} offers đã gửi`" accent="violet" :delay="160" />
     </div>
 
-    <!-- Filter bar -->
-    <FilterBar>
-      <FieldInput v-model="search" placeholder="Tìm vị trí…" :width="220" />
-      <Select v-model="statusF" :options="statusOpts" style="min-width: 150px" />
-      <Select v-model="deptF" :options="deptOpts" style="min-width: 170px" />
-      <div class="flex-1" />
-      <span class="text-[12px] text-muted-foreground">{{ filtered.length }} tin</span>
-    </FilterBar>
-
-    <!-- Job list table -->
-    <div class="card-surface overflow-hidden rise" style="animation-delay: 180ms">
-      <div class="overflow-x-auto">
-        <table class="w-full text-[13px]" style="min-width: 860px">
-          <thead>
-            <tr class="thead-primary border-b border-border/70 text-[11px] uppercase tracking-wider font-semibold">
-              <th class="text-left py-3 px-5">Vị trí</th>
-              <th class="text-left py-3 px-3">Bộ phận</th>
-              <th class="text-left py-3 px-3">Chi nhánh</th>
-              <th class="text-center py-3 px-3">Tuyển</th>
-              <th class="text-left py-3 px-3" style="min-width: 180px">Pipeline</th>
-              <th class="text-center py-3 px-3">JLPT</th>
-              <th class="text-center py-3 px-3">Trạng thái</th>
-              <th class="text-right py-3 px-5">Deadline</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="j in filtered" :key="j.id"
-              class="border-b border-border/60 last:border-0 hover:bg-muted/30 cursor-pointer transition-colors"
-              @click="openJob = j"
-            >
-              <td class="py-3.5 px-5">
-                <p class="font-semibold text-foreground">{{ j.title }}</p>
-                <p class="text-[11.5px] text-muted-foreground mt-0.5">
-                  {{ j.count }} headcount · {{ j.salary }}
-                  <span
-                    v-if="j.jp !== '—'"
-                    class="ml-1.5 px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono text-[10.5px]"
-                  >{{ j.jp }}</span>
-                </p>
-              </td>
-              <td class="py-3.5 px-3 text-foreground/85">{{ j.dept }}</td>
-              <td class="py-3.5 px-3 text-foreground/85">{{ j.branch }}</td>
-              <td class="py-3.5 px-3 text-center">
-                <span class="font-bold tabular-nums text-primary">{{ j.applied }}</span>
-                <p class="text-[10.5px] text-muted-foreground">ứng viên</p>
-              </td>
-              <td class="py-3.5 px-3">
-                <div class="flex items-end gap-0.5 h-8">
-                  <div
-                    v-for="(n, i) in funnelVals(j)" :key="i"
-                    class="flex-1 rounded-sm"
-                    style="min-height: 2px"
-                    :style="{
-                      height: `${Math.max(4, (n / Math.max(j.applied, 1)) * 100)}%`,
-                      background: FUNNEL_COLORS[i],
-                    }"
-                    :title="`${FUNNEL_LABELS[i]}: ${n}`"
-                  />
-                </div>
-                <p class="text-[10px] text-muted-foreground mt-1 tabular-nums">
-                  {{ j.applied }} → {{ j.interviewed }} → {{ j.offered }}
-                </p>
-              </td>
-              <td class="py-3.5 px-3 text-center">
-                <span v-if="j.jp === '—'" class="text-muted-foreground">—</span>
-                <span v-else class="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono text-[11px] font-semibold">{{ j.jp }}</span>
-              </td>
-              <td class="py-3.5 px-3 text-center">
-                <Badge :variant="JOB_STATUS_META[j.status].variant" dot>{{ JOB_STATUS_META[j.status].label }}</Badge>
-              </td>
-              <td class="py-3.5 px-5 text-right font-mono text-muted-foreground text-[12px]">{{ j.end }}</td>
-            </tr>
-            <tr v-if="filtered.length === 0">
-              <td colspan="8" class="py-14 text-center text-muted-foreground">Không có vị trí phù hợp</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <!-- Tabs -->
+    <div class="flex gap-1 border-b border-border/60">
+      <button
+        class="tab-trigger"
+        :class="{ 'tab-trigger--active': activeTab === 'jobs' }"
+        @click="activeTab = 'jobs'"
+      >Tin tuyển dụng</button>
+      <button
+        class="tab-trigger"
+        :class="{ 'tab-trigger--active': activeTab === 'cvs' }"
+        @click="activeTab = 'cvs'"
+      >CV / Ứng viên</button>
     </div>
+
+    <!-- Jobs tab -->
+    <template v-if="activeTab === 'jobs'">
+      <!-- Filter bar -->
+      <FilterBar>
+        <FieldInput v-model="search" placeholder="Tìm vị trí…" :width="220" />
+        <Select v-model="statusF" :options="statusOpts" style="min-width: 150px" />
+        <Select v-model="deptF" :options="deptOpts" style="min-width: 170px" />
+        <div class="flex-1" />
+        <span class="text-[12px] text-muted-foreground">{{ filtered.length }} tin</span>
+      </FilterBar>
+
+      <!-- Job list table -->
+      <div class="card-surface overflow-hidden rise" style="animation-delay: 180ms">
+        <div class="overflow-x-auto">
+          <table class="w-full text-[13px]" style="min-width: 860px">
+            <thead>
+              <tr class="thead-primary border-b border-border/70 text-[11px] uppercase tracking-wider font-semibold">
+                <th class="text-left py-3 px-5">Vị trí</th>
+                <th class="text-left py-3 px-3">Bộ phận</th>
+                <th class="text-left py-3 px-3">Chi nhánh</th>
+                <th class="text-center py-3 px-3">Tuyển</th>
+                <th class="text-left py-3 px-3" style="min-width: 180px">Pipeline</th>
+                <th class="text-center py-3 px-3">JLPT</th>
+                <th class="text-center py-3 px-3">Trạng thái</th>
+                <th class="text-right py-3 px-5">Deadline</th>
+              </tr>
+            </thead>
+            <tbody>
+              <SkeletonRow v-if="recruitStore.loading" :cols="8" :rows="5" />
+              <template v-else-if="filtered.length === 0">
+                <tr>
+                  <td colspan="8" class="py-0">
+                    <EmptyState :icon="Briefcase" title="Không có tin tuyển dụng" description="Chưa có vị trí nào phù hợp với bộ lọc hiện tại." />
+                  </td>
+                </tr>
+              </template>
+              <template v-else>
+                <tr
+                  v-for="j in filtered" :key="j.id"
+                  class="border-b border-border/60 last:border-0 hover:bg-muted/30 cursor-pointer transition-colors"
+                  @click="openJob = j"
+                >
+                  <td class="py-3.5 px-5">
+                    <p class="font-semibold text-foreground">{{ j.title }}</p>
+                    <p class="text-[11.5px] text-muted-foreground mt-0.5">
+                      {{ j.count }} headcount · {{ j.salary }}
+                      <span
+                        v-if="j.jp !== '—'"
+                        class="ml-1.5 px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono text-[10.5px]"
+                      >{{ j.jp }}</span>
+                    </p>
+                  </td>
+                  <td class="py-3.5 px-3 text-foreground/85">{{ j.dept }}</td>
+                  <td class="py-3.5 px-3 text-foreground/85">{{ j.branch }}</td>
+                  <td class="py-3.5 px-3 text-center">
+                    <span class="font-bold tabular-nums text-primary">{{ j.applied }}</span>
+                    <p class="text-[10.5px] text-muted-foreground">ứng viên</p>
+                  </td>
+                  <td class="py-3.5 px-3">
+                    <div class="flex items-end gap-0.5 h-8">
+                      <div
+                        v-for="(n, i) in funnelVals(j)" :key="i"
+                        class="flex-1 rounded-sm"
+                        style="min-height: 2px"
+                        :style="{
+                          height: `${Math.max(4, (n / Math.max(j.applied, 1)) * 100)}%`,
+                          background: FUNNEL_COLORS[i],
+                        }"
+                        :title="`${FUNNEL_LABELS[i]}: ${n}`"
+                      />
+                    </div>
+                    <p class="text-[10px] text-muted-foreground mt-1 tabular-nums">
+                      {{ j.applied }} → {{ j.interviewed }} → {{ j.offered }}
+                    </p>
+                  </td>
+                  <td class="py-3.5 px-3 text-center">
+                    <span v-if="j.jp === '—'" class="text-muted-foreground">—</span>
+                    <span v-else class="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono text-[11px] font-semibold">{{ j.jp }}</span>
+                  </td>
+                  <td class="py-3.5 px-3 text-center">
+                    <Badge :variant="JOB_STATUS_META[j.status].variant" dot>{{ JOB_STATUS_META[j.status].label }}</Badge>
+                  </td>
+                  <td class="py-3.5 px-5 text-right font-mono text-muted-foreground text-[12px]">{{ j.end }}</td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+
+    <!-- CVs tab -->
+    <template v-if="activeTab === 'cvs'">
+      <div class="card-surface overflow-hidden rise" style="animation-delay: 180ms">
+        <div class="overflow-x-auto">
+          <table class="w-full text-[13px]" style="min-width: 700px">
+            <thead>
+              <tr class="thead-primary border-b border-border/70 text-[11px] uppercase tracking-wider font-semibold">
+                <th class="text-left py-3 px-5">Họ tên</th>
+                <th class="text-left py-3 px-3">Email</th>
+                <th class="text-center py-3 px-3">Trạng thái</th>
+                <th class="text-right py-3 px-5">Ngày nộp</th>
+              </tr>
+            </thead>
+            <tbody>
+              <SkeletonRow v-if="recruitStore.loading" :cols="4" :rows="5" />
+              <template v-else-if="recruitStore.cvs.length === 0">
+                <tr>
+                  <td colspan="4" class="py-0">
+                    <EmptyState :icon="Briefcase" title="Chưa có ứng viên" description="Chưa có hồ sơ ứng viên nào được ghi nhận." />
+                  </td>
+                </tr>
+              </template>
+              <template v-else>
+                <tr
+                  v-for="cv in recruitStore.cvs" :key="cv.id"
+                  class="border-b border-border/60 last:border-0 hover:bg-muted/30 transition-colors"
+                >
+                  <td class="py-3.5 px-5 font-semibold text-foreground">{{ cv.full_name }}</td>
+                  <td class="py-3.5 px-3 text-foreground/85">{{ cv.email }}</td>
+                  <td class="py-3.5 px-3 text-center">
+                    <Badge :variant="cvStatusVariant(cv.status)" dot>{{ cvStatusLabel(cv.status) }}</Badge>
+                  </td>
+                  <td class="py-3.5 px-5 text-right font-mono text-muted-foreground text-[12px]">{{ cv.created_at }}</td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
 
     <!-- Job detail slide-over -->
     <Teleport to="body">

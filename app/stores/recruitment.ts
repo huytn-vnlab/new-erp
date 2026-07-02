@@ -18,6 +18,7 @@ export const useRecruitmentStore = defineStore('recruitment', () => {
   const cvs = ref<CvRow[]>([])
   const pagination = ref<Pagination>({ current_page: 1, total_row: 0, row_per_page: 20 })
   const loading = ref(false)
+  const error = ref<string | null>(null)
 
   async function fetchJobs(params: {
     keyword?: string
@@ -25,6 +26,7 @@ export const useRecruitmentStore = defineStore('recruitment', () => {
     current_page?: number
   } = {}) {
     loading.value = true
+    error.value = null
     try {
       const res = await post<JobListResponse>('/api/recruitment/get-jobs', {
         keyword: params.keyword ?? '',
@@ -36,7 +38,14 @@ export const useRecruitmentStore = defineStore('recruitment', () => {
         jobs.value = res.data.jobs ?? []
         pagination.value = res.data.pagination ?? pagination.value
       }
-    } finally {
+      else {
+        error.value = res.message || 'Không thể tải danh sách việc làm.'
+      }
+    }
+    catch {
+      error.value = 'Không thể tải dữ liệu. Vui lòng thử lại.'
+    }
+    finally {
       loading.value = false
     }
   }
@@ -60,13 +69,20 @@ export const useRecruitmentStore = defineStore('recruitment', () => {
         cvs.value = res.data.cvs ?? []
         pagination.value = res.data.pagination ?? pagination.value
       }
-    } finally {
+      else {
+        error.value = res.message || 'Không thể tải danh sách ứng viên.'
+      }
+    }
+    catch {
+      error.value = 'Không thể tải dữ liệu. Vui lòng thử lại.'
+    }
+    finally {
       loading.value = false
     }
   }
 
   return {
-    jobs, cvs, pagination, loading,
+    jobs, cvs, pagination, loading, error,
     fetchJobs, fetchCvs,
   }
 })
