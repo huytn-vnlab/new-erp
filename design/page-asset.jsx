@@ -358,7 +358,9 @@ const AssetDetail = ({ asset, onClose }) => {
   );
 };
 
-const RequestModal = ({ onClose }) => (
+const RequestModal = ({ onClose }) => {
+  const [returnDate, setReturnDate] = React.useState('2026-06-15');
+  return (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
     <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={onClose} />
     <div className="relative card-surface w-full max-w-md rise overflow-hidden">
@@ -373,7 +375,7 @@ const RequestModal = ({ onClose }) => (
         </div>
         <div>
           <label className="text-[11px] uppercase font-semibold text-muted-foreground tracking-wider mb-1.5 block">Ngày trả dự kiến</label>
-          <input type="date" defaultValue="2026-06-15" className="w-full h-9 px-3 rounded-md border border-border bg-muted/30 text-[13px] outline-none focus:border-primary/60" />
+          <DatePicker value={returnDate} onChange={e => setReturnDate(e.target.value)} width="100%" />
         </div>
         <div>
           <label className="text-[11px] uppercase font-semibold text-muted-foreground tracking-wider mb-1.5 block">Lý do mượn</label>
@@ -386,6 +388,7 @@ const RequestModal = ({ onClose }) => (
       </div>
     </div>
   </div>
-);
+  );
+};
 
 window.PageAsset = PageAsset;

@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { ChevronRight } from 'lucide-vue-next'
 import Avatar from '~/components/base/Avatar.vue'
 import type { LeaveMember, LeaveEntry } from '~/mocks/leave'
-import { LEAVE_TYPE_META, LEAVE_STATUS_META } from '~/mocks/leave'
+import { LEAVE_TYPE_META, LEAVE_STATUS_META, LEAVE_TYPE_ID_MAP } from '~/mocks/leave'
 
 const props = defineProps<{
   members: LeaveMember[]
@@ -13,7 +13,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ select: [LeaveEntry] }>()
 
-const WD_VI = ['CN', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7']
+const { t } = useI18n()
 
 const addDays = (iso: string, n: number) => {
   const d = new Date(iso)
@@ -23,11 +23,13 @@ const addDays = (iso: string, n: number) => {
 
 const fmtSlashShort = (iso: string) => iso.slice(5).replace('-', '/')
 
+const WEEKDAY_KEYS = ['hrm.leave.grid.day.sun', 'hrm.leave.grid.day.mon', 'hrm.leave.grid.day.tue', 'hrm.leave.grid.day.wed', 'hrm.leave.grid.day.thu', 'hrm.leave.grid.day.fri', 'hrm.leave.grid.day.sat']
+
 const weekDays = computed(() =>
   Array.from({ length: 7 }, (_, i) => {
     const iso = addDays(props.weekStart, i)
     const d = new Date(iso)
-    return { iso, label: WD_VI[d.getDay()], short: fmtSlashShort(iso), isWeekend: d.getDay() === 0 || d.getDay() === 6 }
+    return { iso, label: t(WEEKDAY_KEYS[d.getDay()]!), short: fmtSlashShort(iso), isWeekend: d.getDay() === 0 || d.getDay() === 6 }
   })
 )
 
@@ -42,7 +44,7 @@ function entryFor(memberId: number, iso: string) {
       <thead>
         <tr>
           <th class="sticky left-0 z-10 bg-muted/40 text-left px-5 py-3 w-[220px] border-b border-r border-border/70">
-            <span class="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">Thành viên</span>
+            <span class="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">{{ t('hrm.leave.grid.member') }}</span>
           </th>
           <th
             v-for="day in weekDays" :key="day.iso"
@@ -74,27 +76,27 @@ function entryFor(memberId: number, iso: string) {
                 v-if="e"
                 class="w-full rounded-md px-2 py-1.5 text-left transition-transform hover:scale-[1.03] cursor-pointer"
                 :style="{
-                  background: LEAVE_TYPE_META[e.type].bg,
-                  borderLeft: `3px solid ${LEAVE_TYPE_META[e.type].color}`,
+                  background: LEAVE_TYPE_META[e.type]!.bg,
+                  borderLeft: `3px solid ${LEAVE_TYPE_META[e.type]!.color}`,
                   opacity: e.status === 'rejected' ? 0.5 : 1
                 }"
-                :title="`${e.type} · ${LEAVE_STATUS_META[e.status].label}`"
+                :title="`${t(LEAVE_TYPE_ID_MAP[e.type]!)} · ${t(LEAVE_STATUS_META[e.status].labelKey)}`"
                 @click="emit('select', e)"
               >
                 <template v-if="e.from === day.iso">
-                  <span class="block text-[11px] font-semibold leading-tight" :style="{ color: LEAVE_TYPE_META[e.type].color }">
-                    {{ e.type }}{{ e.half ? ' ½' : '' }}
+                  <span class="block text-[11px] font-semibold leading-tight" :style="{ color: LEAVE_TYPE_META[e.type]!.color }">
+                    {{ t(LEAVE_TYPE_ID_MAP[e.type]!) }}{{ e.half ? ' ½' : '' }}
                   </span>
                   <span class="flex items-center gap-1 mt-0.5">
                     <span
                       class="h-1.5 w-1.5 rounded-full shrink-0"
                       :style="{ background: e.status === 'approved' ? 'hsl(160 60% 45%)' : e.status === 'rejected' ? 'hsl(0 70% 52%)' : 'hsl(38 92% 50%)' }"
                     />
-                    <span class="text-[10px] text-muted-foreground truncate">{{ LEAVE_STATUS_META[e.status].label }}</span>
+                    <span class="text-[10px] text-muted-foreground truncate">{{ t(LEAVE_STATUS_META[e.status].labelKey) }}</span>
                   </span>
                 </template>
                 <template v-else>
-                  <span class="block h-[26px] flex items-center text-[10.5px]" :style="{ color: LEAVE_TYPE_META[e.type].color }">•••</span>
+                  <span class="block h-[26px] flex items-center text-[10.5px]" :style="{ color: LEAVE_TYPE_META[e.type]!.color }">•••</span>
                 </template>
               </button>
               <div v-else class="h-[40px]" />
@@ -104,7 +106,7 @@ function entryFor(memberId: number, iso: string) {
         <tr v-if="members.length === 0">
           <td :colspan="8" class="py-16 text-center text-muted-foreground">
             <ChevronRight :size="36" class="mx-auto mb-2 opacity-30" />
-            Không tìm thấy nhân viên phù hợp
+            {{ t('hrm.leave.grid.emptyMembers') }}
           </td>
         </tr>
       </tbody>

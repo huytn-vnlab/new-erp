@@ -13,8 +13,24 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ 'prev-month': []; 'next-month': []; today: [] }>()
 
-const MONTH_NAMES = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
-  'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12']
+const { t, locale } = useI18n()
+const localeMap: Record<string, string> = { vi: 'vi-VN', en: 'en-US', ja: 'ja-JP' }
+const dateLocale = computed(() => localeMap[locale.value] ?? 'vi-VN')
+const monthName = computed(() => new Date(props.year, props.month, 1).toLocaleDateString(dateLocale.value, { month: 'long' }))
+
+const weekdayLabels = computed(() => [
+  t('hrm.timekeeping.weekdayShort.mon'), t('hrm.timekeeping.weekdayShort.tue'), t('hrm.timekeeping.weekdayShort.wed'),
+  t('hrm.timekeeping.weekdayShort.thu'), t('hrm.timekeeping.weekdayShort.fri'), t('hrm.timekeeping.weekdayShort.sat'),
+  t('hrm.timekeeping.weekdayShort.sun'),
+])
+
+const legend: [string, string][] = [
+  ['full', 'hrm.timekeeping.calendar.legendFull'],
+  ['late', 'hrm.timekeeping.calendar.legendLate'],
+  ['short', 'hrm.timekeeping.calendar.legendShort'],
+  ['leave', 'hrm.timekeeping.calendar.legendLeave'],
+  ['weekend', 'hrm.timekeeping.calendar.legendWeekend'],
+]
 
 const cells = computed(() => {
   const daysInMonth = new Date(props.year, props.month + 1, 0).getDate()
@@ -24,7 +40,10 @@ const cells = computed(() => {
   for (let i = 0; i < startWeekday; i++) result.push({ blank: true, status: 'empty' })
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${String(d).padStart(2, '0')}/${String(props.month + 1).padStart(2, '0')}/${props.year}`
+    // `history` entries key by formatDateDisplay's "YYYY/MM/DD" (Japan format) —
+    // this used to build "DD/MM/YYYY", which never matched, so every cell
+    // silently fell back to 'empty' and no real status/color ever rendered.
+    const dateStr = `${props.year}/${String(props.month + 1).padStart(2, '0')}/${String(d).padStart(2, '0')}`
     const hist = props.history.find(h => h.date === dateStr)
     result.push({ d, status: hist?.status ?? 'empty', hist })
   }
@@ -37,12 +56,12 @@ const cells = computed(() => {
 <template>
   <div class="space-y-3">
     <div class="flex items-center justify-between">
-      <h4 class="section-title">{{ MONTH_NAMES[month] }} {{ year }}</h4>
+      <h4 class="section-title capitalize">{{ monthName }} {{ year }}</h4>
       <div class="flex items-center gap-0.5">
         <button class="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground" @click="emit('prev-month')">
           <ChevronRight :size="12" class="rotate-180" />
         </button>
-        <button class="h-7 px-2 text-[11px] rounded-md hover:bg-muted text-foreground font-medium" @click="emit('today')">Hôm nay</button>
+        <button class="h-7 px-2 text-[11px] rounded-md hover:bg-muted text-foreground font-medium" @click="emit('today')">{{ t('hrm.timekeeping.calendar.today') }}</button>
         <button class="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground" @click="emit('next-month')">
           <ChevronRight :size="12" />
         </button>
@@ -50,7 +69,7 @@ const cells = computed(() => {
     </div>
 
     <div class="grid grid-cols-7 gap-1.5">
-      <div v-for="d in ['T2','T3','T4','T5','T6','T7','CN']" :key="d"
+      <div v-for="d in weekdayLabels" :key="d"
            class="text-[10.5px] uppercase font-semibold tracking-wider text-muted-foreground text-center py-1">
         {{ d }}
       </div>
@@ -59,7 +78,7 @@ const cells = computed(() => {
         <div v-if="cell.blank" />
         <div
           v-else
-          :title="cell.hist ? `${cell.hist.date}: ${TK_STATUS_META[cell.status as keyof typeof TK_STATUS_META].label}${cell.hist.in ? ` (${cell.hist.in}–${cell.hist.out})` : ''}` : TK_STATUS_META[cell.status as keyof typeof TK_STATUS_META].label"
+          :title="cell.hist ? `${cell.hist.date}: ${t(TK_STATUS_META[cell.status as keyof typeof TK_STATUS_META].labelKey)}${cell.hist.in ? ` (${cell.hist.in}–${cell.hist.out})` : ''}` : t(TK_STATUS_META[cell.status as keyof typeof TK_STATUS_META].labelKey)"
           :class="['aspect-square rounded-md p-1.5 text-center cursor-pointer transition-all hover:scale-[1.05] relative', todayDay === cell.d ? 'ring-1 ring-primary ring-offset-1 ring-offset-background' : '']"
           :style="{ background: TK_STATUS_META[cell.status as keyof typeof TK_STATUS_META].bg }"
         >
@@ -78,9 +97,9 @@ const cells = computed(() => {
     </div>
 
     <div class="flex flex-wrap items-center gap-3 pt-2 border-t border-border/60 text-[11px] text-muted-foreground">
-      <span v-for="[k, l] in [['full','Đủ công'],['late','Muộn'],['short','Thiếu giờ'],['leave','Nghỉ'],['weekend','Cuối tuần']]" :key="k" class="inline-flex items-center gap-1.5">
+      <span v-for="[k, key] in legend" :key="k" class="inline-flex items-center gap-1.5">
         <span class="h-2.5 w-2.5 rounded-sm" :style="{ background: TK_STATUS_META[k as keyof typeof TK_STATUS_META].color }" />
-        {{ l }}
+        {{ t(key) }}
       </span>
     </div>
   </div>

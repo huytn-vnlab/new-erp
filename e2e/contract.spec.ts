@@ -3,10 +3,10 @@ import { mockAuth } from './helpers/auth'
 import { mockApi, mockApiEmpty, mockApiError, MOCK_CONTRACT_ROW, MOCK_PAGINATION } from './helpers/fixtures'
 
 const ROUTES = {
-  contracts: '**/api/contract/get-contract-current-list',
-  types: '**/api/contract/get-contract-type-list',
-  create: '**/api/contract/create-contract',
-  delete: '**/api/contract/delete-contract',
+  contracts: '**/contract/get-contract-current-list',
+  types: '**/contract/get-contract-type-list',
+  create: '**/contract/create-contract',
+  delete: '**/contract/delete-contract',
 }
 
 async function setup(page: Page, empty = false) {

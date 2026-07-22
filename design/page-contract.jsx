@@ -218,7 +218,7 @@ const ContractCreateTab = ({ onCreated }) => {
           </div>
 
           <div><CLabel>Số điện thoại</CLabel><input value={f.phone} onChange={upd('phone')} className={cInput} /></div>
-          <div><CLabel>Sinh nhật</CLabel><input type="date" value={f.birthday} onChange={upd('birthday')} className={cInput} /></div>
+          <div><CLabel>Sinh nhật</CLabel><DatePicker value={f.birthday} onChange={upd('birthday')} width="100%" /></div>
           <div><CLabel>Quốc tịch</CLabel><input value={f.nationality} onChange={upd('nationality')} placeholder="Việt Nam" className={cInput} /></div>
           <div><CLabel>Chức danh/Vị trí công việc</CLabel><input value={f.position} onChange={upd('position')} className={cInput} /></div>
           <div><CLabel>Địa chỉ hiện tại</CLabel><input value={f.address} onChange={upd('address')} className={cInput} /></div>
@@ -231,7 +231,7 @@ const ContractCreateTab = ({ onCreated }) => {
         <div className="space-y-5">
           <div className="grid grid-cols-2 gap-4">
             <div><CLabel>Số CMND/CCCD</CLabel><input value={f.identity} onChange={upd('identity')} className={cInput} /></div>
-            <div><CLabel>Ngày cấp</CLabel><input type="date" value={f.idDate} onChange={upd('idDate')} className={cInput} /></div>
+            <div><CLabel>Ngày cấp</CLabel><DatePicker value={f.idDate} onChange={upd('idDate')} width="100%" /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div><CLabel>Nơi cấp giấy tờ</CLabel><input value={f.idPlace} onChange={upd('idPlace')} className={cInput} /></div>
@@ -248,9 +248,7 @@ const ContractCreateTab = ({ onCreated }) => {
 
           <div>
             <CLabel req>Ngày / tháng / năm tạo hợp đồng</CLabel>
-            <input type="date" value={f.createdDate} onChange={upd('createdDate')}
-              style={errs.createdDate ? { borderColor: 'rgb(248 113 113)' } : undefined}
-              className={errs.createdDate ? cInputErr : cInput} />
+            <DatePicker value={f.createdDate} onChange={upd('createdDate')} width="100%" error={!!errs.createdDate} />
           </div>
 
           {/* Salary rows with unit */}
@@ -292,11 +290,9 @@ const ContractCreateTab = ({ onCreated }) => {
           </div>
           <div>
             <CLabel req>Ngày bắt đầu hợp đồng</CLabel>
-            <input type="date" value={f.startDate} onChange={upd('startDate')}
-              style={errs.startDate ? { borderColor: 'rgb(248 113 113)' } : undefined}
-              className={errs.startDate ? cInputErr : cInput} />
+            <DatePicker value={f.startDate} onChange={upd('startDate')} width="100%" error={!!errs.startDate} />
           </div>
-          <div><CLabel>Ngày kết thúc hợp đồng</CLabel><input type="date" value={f.endDate} onChange={upd('endDate')} className={cInput} /></div>
+          <div><CLabel>Ngày kết thúc hợp đồng</CLabel><DatePicker value={f.endDate} onChange={upd('endDate')} width="100%" /></div>
         </div>
       </div>
 

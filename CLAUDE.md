@@ -93,7 +93,7 @@ eyebrow, title, description?, #actions slot
 - Mock data sống trong `app/mocks/<feature>.ts`
 - Export: types + mock arrays + meta objects (status, category mapping) + helpers
 - Pages dùng pattern `store.data.length ? store.data : MOCK_DATA` — fallback về mock khi API offline
-- `useApi`: real `$fetch` client với JWT Bearer, auto-refresh on 401 → `POST /api/auth/refresh`
+- `useApi`: real `$fetch` client với JWT Bearer, auto-refresh on 401 → `POST /auth/refresh`
 - `useAuth`: login (FormData POST), logout, fetchUser — cookies `auth_token` (72h) + `refresh_token` (30d)
 
 ## Quy tắc Code
@@ -177,5 +177,11 @@ Design prototype JSX files trong `design/` là nguồn chân lý duy nhất cho 
 ## API
 
 - Base URL: `NUXT_ENV_AXIOS_BASE_URL` (default: `http://localhost:8010`)
-- Auth: JWT Bearer token. Login: `POST /api/auth/login` (FormData). Refresh: `POST /api/auth/refresh`.
+- Auth: JWT Bearer token. Login: `POST /auth/login` (FormData). Refresh: `POST /auth/refresh`.
 - Response envelope: `{ status: number; message: string; data: T | null }` — `status === 1` = success.
+- Backend source: `C:/Working/erp/micro-erp-api/` (Go/Echo + pg-go ORM, PostgreSQL)
+- **Được phép edit API backend** theo spec SPA mới khi frontend cần field/endpoint mới hoặc fix logic sai.
+  - Params struct: `internal/interfaces/requestparams/`
+  - Controllers: `internal/domains/<domain>/controller.go`
+  - Repository (SQL): `internal/domains/<domain>/pgrepository.go`
+  - Config/constants: `configs/`

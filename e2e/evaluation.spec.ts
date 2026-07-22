@@ -3,8 +3,8 @@ import { mockAuth } from './helpers/auth'
 import { mockApi, mockApiError, MOCK_EVALUATION_ROW, MOCK_PAGINATION } from './helpers/fixtures'
 
 const ROUTES = {
-  list: '**/api/targeteval/search-evaluation-list',
-  export: '**/api/targeteval/export-excel',
+  list: '**/targeteval/search-evaluation-list',
+  export: '**/targeteval/export-excel',
 }
 
 async function setup(page: Page, empty = false) {

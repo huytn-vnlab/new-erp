@@ -5,10 +5,11 @@ import Topbar from '~/components/layout/Topbar.vue'
 import TweaksPanel from '~/components/layout/TweaksPanel.vue'
 import ToastHost from '~/components/base/ToastHost.vue'
 import { useNotificationStore } from '~/stores/notification'
+import { formatDateTimeDisplay } from '~/utils/date'
 
 const route = useRoute()
 const { tweaks, setTweak } = useTweaks()
-const { locale, setLocale } = useI18n()
+const { t, locale, setLocale } = useI18n()
 const auth = useAuth()
 const notiStore = useNotificationStore()
 
@@ -18,21 +19,25 @@ onMounted(async () => {
   notiStore.fetchUnreadCount()
 })
 
-const CRUMBS: Record<string, { label: string }[]> = {
-  '/home-admin': [{ label: 'Trang chủ' }, { label: 'Tổng quan' }],
-  '/hrm/member': [{ label: 'Trang chủ' }, { label: 'HRM' }, { label: 'Quản lý nhân viên' }],
-  '/hrm/member/profile': [{ label: 'Trang chủ' }, { label: 'HRM' }, { label: 'Quản lý nhân viên' }, { label: 'Hồ sơ cá nhân' }],
-  '/hrm/leave': [{ label: 'Trang chủ' }, { label: 'HRM' }, { label: 'Đơn nghỉ phép' }],
-  '/hrm/asset': [{ label: 'Trang chủ' }, { label: 'HRM' }, { label: 'Tài sản' }],
-  '/hrm/contract': [{ label: 'Trang chủ' }, { label: 'HRM' }, { label: 'Hợp đồng' }],
-  '/hrm/timekeeping': [{ label: 'Trang chủ' }, { label: 'HRM' }, { label: 'Chấm công' }],
-  '/evaluation': [{ label: 'Trang chủ' }, { label: 'Đánh giá nhân sự' }],
-  '/workflow/project': [{ label: 'Trang chủ' }, { label: 'Workflow' }, { label: 'Dự án' }],
-  '/recruitment': [{ label: 'Trang chủ' }, { label: 'Tuyển dụng' }],
-  '/request/overtime': [{ label: 'Trang chủ' }, { label: 'Yêu cầu' }, { label: 'Tăng ca' }],
-  '/settings': [{ label: 'Trang chủ' }, { label: 'Cài đặt hệ thống' }],
-}
-const crumbs = computed(() => CRUMBS[route.path] ?? [{ label: 'Trang chủ' }])
+const CRUMBS = computed<Record<string, { label: string }[]>>(() => ({
+  '/home-admin':         [{ label: t('nav.home') }, { label: t('nav.dashboard') }],
+  '/hrm/member':         [{ label: t('nav.home') }, { label: 'HRM' }, { label: t('nav.manageMember') }],
+  '/hrm/member/profile': [{ label: t('nav.home') }, { label: 'HRM' }, { label: t('nav.manageMember') }, { label: t('nav.profile') }],
+  '/hrm/leave':          [{ label: t('nav.home') }, { label: 'HRM' }, { label: t('nav.leave') }],
+  '/hrm/asset':          [{ label: t('nav.home') }, { label: 'HRM' }, { label: t('nav.assets') }],
+  '/hrm/contract':       [{ label: t('nav.home') }, { label: 'HRM' }, { label: t('nav.contract') }],
+  '/hrm/timekeeping':    [{ label: t('nav.home') }, { label: 'HRM' }, { label: t('nav.timekeeping') }],
+  '/evaluation':         [{ label: t('nav.home') }, { label: t('nav.evaluation') }],
+  '/workflow/project':   [{ label: t('nav.home') }, { label: t('nav.workflow') }, { label: t('nav.project') }],
+  '/recruitment':        [{ label: t('nav.home') }, { label: t('nav.recruitment') }],
+  '/request/overtime':   [{ label: t('nav.home') }, { label: t('nav.request') }, { label: t('nav.overtime') }],
+  '/settings':           [{ label: t('nav.home') }, { label: t('nav.setting') }],
+}))
+const crumbs = computed(() => {
+  if (/^\/hrm\/member\/\d+$/.test(route.path))
+    return [{ label: t('nav.home') }, { label: 'HRM' }, { label: t('nav.manageMember') }, { label: 'Hồ sơ nhân viên' }]
+  return CRUMBS.value[route.path] ?? [{ label: t('nav.home') }]
+})
 const isDark = computed(() => tweaks.value.theme === 'dark')
 const density = computed(() => tweaks.value.density)
 
@@ -55,7 +60,7 @@ function toggleTheme() { setTweak('theme', isDark.value ? 'light' : 'dark') }
           </div>
           <footer class="pt-4 pb-2 flex items-center justify-between text-[11px] text-muted-foreground border-t border-border/70 mt-10">
             <span>© 2026 GMO-Z.com Vietnam Lab Center · VNLab Internal</span>
-            <span class="font-mono">Cập nhật lần cuối · {{ new Date().toLocaleString('vi-VN') }}</span>
+            <span class="font-mono">{{ t('layout.lastUpdated') }} · {{ formatDateTimeDisplay(new Date(), true) }}</span>
           </footer>
         </div>
       </main>

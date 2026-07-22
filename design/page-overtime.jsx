@@ -309,7 +309,11 @@ const OTCalendar = () => {
   );
 };
 
-const OTCreateModal = ({ onClose }) => (
+const OTCreateModal = ({ onClose }) => {
+  const [otDate, setOtDate] = React.useState('2026-05-23');
+  const [otFrom, setOtFrom] = React.useState('18:00');
+  const [otTo, setOtTo] = React.useState('21:00');
+  return (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
     <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={onClose} />
     <div className="relative card-surface w-full max-w-lg rise overflow-hidden">
@@ -326,15 +330,15 @@ const OTCreateModal = ({ onClose }) => (
         <div className="grid grid-cols-3 gap-3">
           <div>
             <label className="text-[11px] uppercase font-semibold text-muted-foreground tracking-wider block mb-1.5">Ngày làm OT</label>
-            <input type="date" defaultValue="2026-05-23" className="w-full h-9 px-3 rounded-md border border-border bg-muted/30 text-[13px] outline-none focus:border-primary/60" />
+            <DatePicker value={otDate} onChange={e => setOtDate(e.target.value)} width="100%" />
           </div>
           <div>
             <label className="text-[11px] uppercase font-semibold text-muted-foreground tracking-wider block mb-1.5">Từ</label>
-            <input type="time" defaultValue="18:00" className="w-full h-9 px-3 rounded-md border border-border bg-muted/30 text-[13px] outline-none focus:border-primary/60 font-mono" />
+            <TimePicker value={otFrom} onChange={e => setOtFrom(e.target.value)} width="100%" />
           </div>
           <div>
             <label className="text-[11px] uppercase font-semibold text-muted-foreground tracking-wider block mb-1.5">Đến</label>
-            <input type="time" defaultValue="21:00" className="w-full h-9 px-3 rounded-md border border-border bg-muted/30 text-[13px] outline-none focus:border-primary/60 font-mono" />
+            <TimePicker value={otTo} onChange={e => setOtTo(e.target.value)} width="100%" />
           </div>
         </div>
         <div>
@@ -353,6 +357,7 @@ const OTCreateModal = ({ onClose }) => (
       </div>
     </div>
   </div>
-);
+  );
+};
 
 window.PageOvertime = PageOvertime;

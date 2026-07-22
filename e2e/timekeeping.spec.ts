@@ -3,11 +3,11 @@ import { mockAuth } from './helpers/auth'
 import { mockApi, mockApiError, MOCK_TK_ROW, MOCK_TK_TODAY, MOCK_PAGINATION } from './helpers/fixtures'
 
 const ROUTES = {
-  today: '**/api/timekeeping/get-timekeeping-today',
-  all: '**/api/timekeeping/get-all-timekeeping',
-  mine: '**/api/timekeeping/get-all-timekeeping-user',
-  checkIn: '**/api/timekeeping/check-in',
-  checkOut: '**/api/timekeeping/check-out',
+  today: '**/timekeeping/get-timekeeping-today',
+  all: '**/timekeeping/get-all-timekeeping',
+  mine: '**/timekeeping/get-all-timekeeping-user',
+  checkIn: '**/timekeeping/check-in',
+  checkOut: '**/timekeeping/check-out',
 }
 
 async function setup(page: Page, empty = false) {

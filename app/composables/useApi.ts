@@ -15,7 +15,7 @@ export const useApi = () => {
     if (!refreshToken.value) return false
     try {
       const res = await $fetch<ApiResponse<{ token: string; refresh_token: string }>>(
-        `${base}/api/auth/refresh`,
+        `${base}/auth/refresh`,
         { method: 'POST', body: { refresh_token: refreshToken.value } },
       )
       if (res.status === 1 && res.data) {
@@ -40,13 +40,17 @@ export const useApi = () => {
         headers: { ...authHeaders(), ...(opts.headers as Record<string, string> | undefined) },
       })
     } catch (err: unknown) {
-      const httpStatus =
-        (err as { response?: { status?: number } })?.response?.status ??
-        (err as { status?: number })?.status
+      const fe = err as { response?: { status?: number }; status?: number; data?: unknown }
+      const httpStatus = fe?.response?.status ?? fe?.status
       if (httpStatus === 401 && !retried) {
         const ok = await tryRefresh()
         if (ok) return call<T>(url, opts, true)
         await navigateTo('/organization/find-organization')
+      }
+      // ofetch puts the parsed response body in err.data — return it so callers get the API envelope
+      const body = fe?.data
+      if (body && typeof body === 'object' && 'status' in body && 'message' in body) {
+        return body as ApiResponse<T>
       }
       throw err
     }
@@ -64,6 +68,22 @@ export const useApi = () => {
     return call<T>(url, { method: 'POST', body: form })
   }
 
+  // Some export endpoints (e.g. /api/user/export-excel) return a raw
+  // application/octet-stream body, not the {status,message,data} envelope —
+  // call() can't parse those, so fetch and hand back a Blob directly.
+  async function postBlob(url: string, body?: Record<string, unknown>): Promise<Blob | null> {
+    try {
+      return await $fetch<Blob>(`${base}${url}`, {
+        method: 'POST',
+        body,
+        headers: authHeaders(),
+        responseType: 'blob',
+      })
+    } catch {
+      return null
+    }
+  }
+
   function put<T>(url: string, body?: Record<string, unknown>) {
     return call<T>(url, { method: 'PUT', body })
   }
@@ -72,5 +92,5 @@ export const useApi = () => {
     return call<T>(url, { method: 'DELETE', body })
   }
 
-  return { get, post, postForm, put, del }
+  return { get, post, postForm, postBlob, put, del }
 }

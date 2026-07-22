@@ -8,7 +8,7 @@ interface LeaveRequestListResponse {
 
 interface LeaveBonusListResponse {
   leave_bonuses: LeaveBonusRow[]
-  total_row: number
+  pagination: { total_row: number }
 }
 
 interface AllUserLeaveInfoResponse {
@@ -21,6 +21,7 @@ export const useLeaveStore = defineStore('leave', () => {
   const leaveInfo = ref<LeaveInfo | null>(null)
   const requests = ref<LeaveRequest[]>([])
   const bonuses = ref<LeaveBonusRow[]>([])
+  const bonusPagination = ref({ total_row: 0, current_page: 1, row_per_page: 20 })
   const allUsersLeaveInfo = ref<AllUserLeaveInfo[]>([])
   const pagination = ref<Pagination>({ current_page: 1, total_row: 0, row_per_page: 20 })
   const loading = ref(false)
@@ -28,7 +29,9 @@ export const useLeaveStore = defineStore('leave', () => {
 
   async function fetchLeaveInfo(userId?: number) {
     try {
-      const res = await post<LeaveInfo>('/api/leave/get-leave-info', { user_id: userId })
+      const body: Record<string, unknown> = { year: new Date().getFullYear() }
+      if (userId) body.user_id = userId
+      const res = await post<LeaveInfo>('/leave/get-leave-info', body)
       if (res.status === 1 && res.data) leaveInfo.value = res.data
     } catch { /* non-critical */ }
   }
@@ -38,15 +41,21 @@ export const useLeaveStore = defineStore('leave', () => {
     leave_request_type_id?: number
     branch?: number
     current_page?: number
+    row_per_page?: number
+    datetime_leave_from?: string
+    datetime_leave_to?: string
   } = {}) {
     loading.value = true
     error.value = null
     try {
-      const res = await post<LeaveRequestListResponse>('/api/leave/get-leave-requests', {
+      const res = await post<LeaveRequestListResponse>('/leave/get-leave-requests', {
         user_name: params.user_name ?? '',
         leave_request_type_id: params.leave_request_type_id ?? 0,
         branch: params.branch ?? 0,
         current_page: params.current_page ?? 1,
+        row_per_page: params.row_per_page ?? 200,
+        datetime_leave_from: params.datetime_leave_from ?? '',
+        datetime_leave_to: params.datetime_leave_to ?? '',
       })
       if (res.status === 1 && res.data) {
         requests.value = res.data.leaves ?? []
@@ -61,19 +70,39 @@ export const useLeaveStore = defineStore('leave', () => {
     }
   }
 
-  async function fetchBonuses(params: { current_page?: number } = {}) {
+  async function fetchBonuses(params: {
+    current_page?: number
+    row_per_page?: number
+    full_name?: string
+    leave_bonus_type_id?: number
+    year?: number
+  } = {}) {
+    const rpp = params.row_per_page ?? 20
     try {
-      const res = await post<LeaveBonusListResponse>('/api/leave/get-leave-bonuses', {
+      const res = await post<LeaveBonusListResponse>('/leave/get-leave-bonuses', {
         current_page: params.current_page ?? 1,
-        row_per_page: 20,
+        row_per_page: rpp,
+        full_name: params.full_name ?? '',
+        leave_bonus_type_id: params.leave_bonus_type_id ?? 0,
+        year: params.year ?? 0,
       })
-      if (res.status === 1 && res.data) bonuses.value = res.data.leave_bonuses ?? []
+      if (res.status === 1 && res.data) {
+        bonuses.value = res.data.leave_bonuses ?? []
+        bonusPagination.value = {
+          total_row: res.data.pagination?.total_row ?? 0,
+          current_page: params.current_page ?? 1,
+          row_per_page: rpp,
+        }
+      }
     } catch { /* non-critical */ }
   }
 
   async function fetchLeaveInfoAll() {
     try {
-      const res = await post<AllUserLeaveInfoResponse>('/api/leave/get-leave-info-all-user', {})
+      const res = await post<AllUserLeaveInfoResponse>('/leave/get-leave-info-all-user', {
+        current_page: 1,
+        row_per_page: 500,
+      })
       if (res.status === 1 && res.data) allUsersLeaveInfo.value = res.data.users ?? []
     } catch { /* non-critical */ }
   }
@@ -84,39 +113,65 @@ export const useLeaveStore = defineStore('leave', () => {
     datetime_leave_from: string
     datetime_leave_to: string
     reason: string
-    half_day?: boolean
+    email_title: string
+    email_content: string
+    subtract_day_off_type_id?: number
   }) {
-    const res = await post('/api/leave/create-leave', payload)
+    const { user } = useAuth()
+    const typeId = parseInt(payload.leave_request_type) || 1
+    const dateFrom = payload.datetime_leave_from
+    const dateTo = payload.datetime_leave_to || dateFrom
+    const res = await post('/leave/create-leave', {
+      leave_request: [{
+        user_id: payload.user_id || user.value?.id || 0,
+        leave_request_type_id: typeId,
+        datetime_leave_from: dateFrom,
+        datetime_leave_to: dateTo,
+        reason: payload.reason,
+        email_title: payload.email_title,
+        email_content: payload.email_content,
+        subtract_day_off_type_id: payload.subtract_day_off_type_id ?? 1,
+      }],
+    })
     return { ok: res.status === 1, message: res.message }
   }
 
   async function updateStatus(id: number, status: number, reason?: string) {
-    const res = await post('/api/leave/update-leave-request-status', { leave_request_id: id, status, reason: reason ?? '' })
+    const res = await post('/leave/update-leave-request-status', { leave_request_id: id, status, reason: reason ?? '' })
     return { ok: res.status === 1, message: res.message }
   }
 
   async function removeLeave(id: number) {
-    const res = await post('/api/leave/remove-leave', { leave_request_id: id })
+    const res = await post('/leave/remove-leave', { leave_id: id })
     return { ok: res.status === 1, message: res.message }
   }
 
   async function addLeaveBonus(payload: {
     user_id: number
-    leave_bonus_type: string
+    leave_bonus_type_id: number
     hour: number
-    year: number
+    year_belong: number
     reason: string
   }) {
-    const res = await post('/api/leave/create-leave-bonus', { leave_bonus: payload })
+    const { user } = useAuth()
+    const res = await post('/leave/create-leave-bonus', {
+      leave_bonus: [{
+        user_id: payload.user_id || user.value?.id || 0,
+        leave_bonus_type_id: payload.leave_bonus_type_id,
+        hour: payload.hour,
+        year_belong: payload.year_belong,
+        reason: payload.reason,
+      }],
+    })
     return { ok: res.status === 1, message: res.message }
   }
 
   async function exportExcel() {
-    return get('/api/leave/export-excel')
+    return get('/leave/export-excel')
   }
 
   return {
-    leaveInfo, requests, bonuses, allUsersLeaveInfo, pagination, loading, error,
+    leaveInfo, requests, bonuses, bonusPagination, allUsersLeaveInfo, pagination, loading, error,
     fetchLeaveInfo, fetchLeaveRequests, fetchBonuses, fetchLeaveInfoAll,
     createLeave, updateStatus, removeLeave, addLeaveBonus, exportExcel,
   }

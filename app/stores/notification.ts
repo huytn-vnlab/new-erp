@@ -25,17 +25,18 @@ export const useNotificationStore = defineStore('notification', () => {
   const unreadCount = ref(0)
   const loading = ref(false)
 
-  const isUnread = computed(() => (n: NotificationItem) => n.status === 0)
+  // cf.NotificationStatusUnread=1 / Read=2 / Seen=3 on the backend.
+  const isUnread = computed(() => (n: NotificationItem) => n.status === 1)
 
-  async function fetchNotifications(page = 1) {
+  async function fetchNotifications(page = 1, rowPerPage = 10) {
     const userId = auth.user.value?.id
     if (!userId) return
     loading.value = true
     try {
-      const res = await api.post<NotificationData>('/api/notification/get-notifications', {
+      const res = await api.post<NotificationData>('/notification/get-notifications', {
         receiver: userId,
         current_page: page,
-        row_per_page: 10,
+        row_per_page: rowPerPage,
       })
       if (res.status === 1 && res.data) {
         notifications.value = res.data.notifications ?? []
@@ -44,14 +45,23 @@ export const useNotificationStore = defineStore('notification', () => {
     finally { loading.value = false }
   }
 
+  // Backend parses client_time with cf.FormatDate ("2006-01-02 15:04:05") and
+  // panics (crashing the request) on any other shape — the previous
+  // dd/mm/yyyy-only value here made every call fail silently via the catch.
+  function clientTimeNow(): string {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    }).formatToParts(new Date())
+    const get = (type: string) => parts.find(p => p.type === type)?.value ?? '00'
+    return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`
+  }
+
   async function fetchUnreadCount() {
-    const loc = 'Asia/Ho_Chi_Minh'
-    const clientTime = new Date().toLocaleDateString('vi-VN', {
-      timeZone: loc, day: '2-digit', month: '2-digit', year: 'numeric',
-    }).replace(/\//g, '/')
     try {
-      const res = await api.post<number>('/api/notification/get-total-notifications-unread', {
-        client_time: clientTime,
+      const res = await api.post<number>('/notification/get-total-notifications-unread', {
+        client_time: clientTimeNow(),
       })
       if (res.status === 1 && res.data !== null) {
         unreadCount.value = res.data as number
@@ -63,13 +73,28 @@ export const useNotificationStore = defineStore('notification', () => {
     const userId = auth.user.value?.id
     if (!userId) return
     try {
-      await api.post<ApiResponse<null>>('/api/notification/edit-notification-status-read', {
+      await api.post<ApiResponse<null>>('/notification/edit-notification-status-read', {
         receiver: userId,
       })
-      notifications.value = notifications.value.map(n => ({ ...n, status: 1 }))
+      // UpdateNotificationStatusRead sets status = cf.NotificationStatusRead (2).
+      notifications.value = notifications.value.map(n => ({ ...n, status: 2 }))
       unreadCount.value = 0
     } catch { /* ignore */ }
   }
 
-  return { notifications, unreadCount, loading, isUnread, fetchNotifications, fetchUnreadCount, markAllRead }
+  async function markOneRead(id: number) {
+    const userId = auth.user.value?.id
+    if (!userId) return
+    const item = notifications.value.find(n => n.id === id)
+    if (!item || item.status !== 1) return
+    try {
+      await api.post<ApiResponse<null>>('/notification/edit-notification-status', {
+        id, status: 2, receiver: userId,
+      })
+      item.status = 2
+      unreadCount.value = Math.max(0, unreadCount.value - 1)
+    } catch { /* ignore */ }
+  }
+
+  return { notifications, unreadCount, loading, isUnread, fetchNotifications, fetchUnreadCount, markAllRead, markOneRead }
 })

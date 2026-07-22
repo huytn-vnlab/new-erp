@@ -56,7 +56,7 @@ micro-erp-spa-v3/
 │  ├─ layouts/                   # admin.vue (sidebar+topbar), auth.vue
 │  ├─ pages/                     # mirror routes design (xem mục 6)
 │  ├─ middleware/                # (parked) auth guard — thêm khi migrate
-│  ├─ plugins/                   # tối thiểu — firebase/api/auth thêm lại pha migrate
+│  ├─ plugins/                   # tối thiểu — firebase/auth thêm lại pha migrate
 │  ├─ stores/                    # Pinia mock nhẹ
 │  ├─ utils/                     # cn.ts, format.ts, date.ts (giữ tiện ích thuần)
 │  ├─ mocks/                     # ⭐ dữ liệu mock tập trung (members.ts, leaves.ts, …)

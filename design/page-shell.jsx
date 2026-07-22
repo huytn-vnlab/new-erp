@@ -199,6 +199,200 @@ const Select = ({ value, options, onChange, width = 160, placeholder = 'Chọn�
 };
 
 
+/* ── Date/Time helpers (shared) ───────────────────────────────── */
+const DP_WD_VI = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+const DP_MONTH_VI = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
+const dpIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const dpFmtVN = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+const dpParseIso = (s) => {
+  if (!s) return null;
+  const [y, m, d] = s.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+};
+const dpSameDay = (a, b) => a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+/* Custom date picker — styled trigger + floating calendar (replaces native <input type="date">) */
+const DatePicker = ({ value, onChange, width = 200, placeholder = 'dd/mm/yyyy', error = false }) => {
+  const [open, setOpen] = React.useState(false);
+  const selected = dpParseIso(value);
+  const [viewDate, setViewDate] = React.useState(() => selected || new Date());
+  const [pos, setPos] = React.useState({ top: 0, left: 0, w: 0 });
+  const ref = React.useRef(null);
+  const triggerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  const openCal = () => {
+    if (triggerRef.current) {
+      const r = triggerRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + window.scrollY + 4, left: r.left + window.scrollX, w: r.width });
+    }
+    setViewDate(selected || new Date());
+    setOpen((o) => !o);
+  };
+
+  const pick = (d) => { onChange({ target: { value: dpIso(d) } }); setOpen(false); };
+  const clear = (e) => { e.stopPropagation(); onChange({ target: { value: '' } }); };
+
+  const y = viewDate.getFullYear(), m = viewDate.getMonth();
+  const firstOfMonth = new Date(y, m, 1);
+  const startOffset = (firstOfMonth.getDay() + 6) % 7; // Monday-first
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const gridStart = new Date(y, m, 1 - startOffset);
+  const cells = Array.from({ length: 42 }, (_, i) => {
+    const d = new Date(gridStart); d.setDate(gridStart.getDate() + i); return d;
+  });
+  const today = new Date();
+
+  return (
+    <div className="relative" style={{ width }} ref={ref}>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={openCal}
+        className={'w-full h-9 pl-3 pr-8 rounded-lg border bg-card text-[13px] text-left outline-none cursor-pointer transition-colors flex items-center gap-2 ' +
+          (error ? 'border-red-400' : (open ? 'border-primary/60 ring-2 ring-primary/15' : 'border-border hover:border-primary/40'))}>
+        <Icon.Calendar size={13} className="text-muted-foreground shrink-0" />
+        <span className={'truncate ' + (selected ? 'text-foreground font-mono' : 'text-muted-foreground/60')}>
+          {selected ? dpFmtVN(selected) : placeholder}
+        </span>
+      </button>
+      {selected &&
+      <button type="button" onClick={clear} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+          <Icon.X size={12} />
+        </button>
+      }
+
+      {open && ReactDOM.createPortal(
+        <div
+          style={{ position: 'fixed', top: pos.top - window.scrollY, left: pos.left, width: 268, zIndex: 9999, animation: 'selectIn 0.14s ease-out' }}
+          className="rounded-xl border border-border bg-popover shadow-popover overflow-hidden origin-top p-3">
+          {/* Month nav */}
+          <div className="flex items-center justify-between mb-2.5">
+            <button type="button" onClick={() => setViewDate(new Date(y, m - 1, 1))}
+              className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+              <Icon.ChevronRight size={13} className="rotate-180" />
+            </button>
+            <span className="text-[13px] font-semibold text-foreground font-heading">{DP_MONTH_VI[m]} {y}</span>
+            <button type="button" onClick={() => setViewDate(new Date(y, m + 1, 1))}
+              className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+              <Icon.ChevronRight size={13} />
+            </button>
+          </div>
+          {/* Weekday row */}
+          <div className="grid grid-cols-7 mb-1">
+            {DP_WD_VI.map((w, i) => <span key={i} className="text-[10.5px] font-semibold text-muted-foreground/70 text-center py-1">{w}</span>)}
+          </div>
+          {/* Day grid */}
+          <div className="grid grid-cols-7 gap-y-0.5">
+            {cells.map((d, i) => {
+              const inMonth = d.getMonth() === m;
+              const isSel = dpSameDay(d, selected);
+              const isToday = dpSameDay(d, today);
+              return (
+                <button key={i} type="button" onClick={() => pick(d)}
+                  className={'h-8 w-8 mx-auto rounded-md text-[12.5px] font-medium flex items-center justify-center transition-colors tabular-nums ' +
+                    (isSel ? 'text-white' : inMonth ? 'text-foreground hover:bg-muted' : 'text-muted-foreground/35 hover:bg-muted/50')}
+                  style={isSel ? { background: 'hsl(var(--primary))' } : isToday ? { boxShadow: 'inset 0 0 0 1.5px hsl(var(--primary))' } : {}}>
+                  {d.getDate()}
+                </button>
+              );
+            })}
+          </div>
+          {/* Footer */}
+          <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-border/60">
+            <button type="button" onClick={() => { onChange({ target: { value: '' } }); setOpen(false); }}
+              className="text-[11.5px] font-medium text-muted-foreground hover:text-foreground transition-colors">Xóa</button>
+            <button type="button" onClick={() => pick(new Date())}
+              className="text-[11.5px] font-medium text-primary hover:underline">Hôm nay</button>
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>);
+};
+
+/* Custom time picker — styled trigger + floating hour/minute columns (replaces native <input type="time">) */
+const TimePicker = ({ value, onChange, width = 140, placeholder = '--:--', error = false }) => {
+  const [open, setOpen] = React.useState(false);
+  const [pos, setPos] = React.useState({ top: 0, left: 0 });
+  const ref = React.useRef(null);
+  const triggerRef = React.useRef(null);
+  const [hh, mm] = (value || '').split(':');
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  const openList = () => {
+    if (triggerRef.current) {
+      const r = triggerRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + window.scrollY + 4, left: r.left + window.scrollX });
+    }
+    setOpen((o) => !o);
+  };
+
+  const setPart = (part, v) => {
+    const cur = { h: hh ?? '00', m: mm ?? '00' };
+    cur[part] = v;
+    onChange({ target: { value: `${cur.h}:${cur.m}` } });
+  };
+
+  const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+  const minutes = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
+
+  return (
+    <div className="relative" style={{ width }} ref={ref}>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={openList}
+        className={'w-full h-9 pl-3 pr-3 rounded-lg border bg-card text-[13px] text-left outline-none cursor-pointer transition-colors flex items-center gap-2 ' +
+          (error ? 'border-red-400' : (open ? 'border-primary/60 ring-2 ring-primary/15' : 'border-border hover:border-primary/40'))}>
+        <Icon.Clock size={13} className="text-muted-foreground shrink-0" />
+        <span className={'font-mono ' + (value ? 'text-foreground' : 'text-muted-foreground/60')}>{value || placeholder}</span>
+      </button>
+
+      {open && ReactDOM.createPortal(
+        <div
+          style={{ position: 'fixed', top: pos.top - window.scrollY, left: pos.left, width: 130, zIndex: 9999, animation: 'selectIn 0.14s ease-out' }}
+          className="rounded-xl border border-border bg-popover shadow-popover overflow-hidden origin-top">
+          <div className="grid grid-cols-2 divide-x divide-border/60">
+            <div className="max-h-48 overflow-y-auto scrollbar-thin py-1">
+              {hours.map((h) => (
+                <button key={h} type="button" onClick={() => setPart('h', h)}
+                  className={'w-full text-center py-1.5 text-[12.5px] font-mono transition-colors ' +
+                    (h === hh ? 'text-primary font-bold bg-primary/10' : 'text-foreground/80 hover:bg-muted')}>{h}</button>
+              ))}
+            </div>
+            <div className="max-h-48 overflow-y-auto scrollbar-thin py-1">
+              {minutes.map((mn) => (
+                <button key={mn} type="button" onClick={() => setPart('m', mn)}
+                  className={'w-full text-center py-1.5 text-[12.5px] font-mono transition-colors ' +
+                    (mn === mm ? 'text-primary font-bold bg-primary/10' : 'text-foreground/80 hover:bg-muted')}>{mn}</button>
+              ))}
+            </div>
+          </div>
+          <div className="border-t border-border/60 p-1.5">
+            <button type="button" onClick={() => setOpen(false)}
+              className="w-full h-7 rounded-md text-[12px] font-semibold text-white transition-colors"
+              style={{ background: 'hsl(var(--primary))' }}>Xong</button>
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>);
+};
+
 const Pagination = ({ page, total, perPage, onChange }) => {
   const pages = Math.ceil(total / perPage);
   const from = (page - 1) * perPage + 1;
@@ -270,4 +464,4 @@ const MiniStat = ({ label, value, sublabel, trend, accent = 'primary', delay = 0
     </div>);
 };
 
-Object.assign(window, { PageHeader, Btn, Badge, Avatar, FilterBar, FieldInput, Select, Pagination, MiniStat });
+Object.assign(window, { PageHeader, Btn, Badge, Avatar, FilterBar, FieldInput, Select, DatePicker, TimePicker, Pagination, MiniStat });

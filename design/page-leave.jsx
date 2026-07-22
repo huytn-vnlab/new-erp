@@ -141,13 +141,11 @@ const PageLeave = () => {
               </div>
               <div>
                 <label className="block text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">Từ ngày</label>
-                <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
-                  className="w-full h-10 px-3 rounded-lg border border-border bg-card text-[13px] text-foreground outline-none focus:border-primary/60" />
+                <DatePicker value={fromDate} onChange={e => setFromDate(e.target.value)} width="100%" />
               </div>
               <div>
                 <label className="block text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">Đến ngày</label>
-                <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
-                  className="w-full h-10 px-3 rounded-lg border border-border bg-card text-[13px] text-foreground outline-none focus:border-primary/60" />
+                <DatePicker value={toDate} onChange={e => setToDate(e.target.value)} width="100%" />
               </div>
               <Btn variant="primary" icon="Search" onClick={() => {
                 if (fromDate) setWeekStart(mondayOf(new Date(fromDate)));
@@ -388,8 +386,8 @@ const LeaveCreateForm = ({ onSubmit, members }) => {
             options={LEAVE_TYPES.map(t => ({ value: t, label: t }))} />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <div><Lbl req>Từ ngày</Lbl><input type="date" value={f.from} onChange={upd('from')} className="w-full h-10 px-3 rounded-lg border border-border bg-card text-[13px] text-foreground outline-none focus:border-primary/60" /></div>
-          <div><Lbl req>Đến ngày</Lbl><input type="date" value={f.to} onChange={upd('to')} className="w-full h-10 px-3 rounded-lg border border-border bg-card text-[13px] text-foreground outline-none focus:border-primary/60" /></div>
+          <div><Lbl req>Từ ngày</Lbl><DatePicker value={f.from} onChange={upd('from')} width="100%" /></div>
+          <div><Lbl req>Đến ngày</Lbl><DatePicker value={f.to} onChange={upd('to')} width="100%" /></div>
         </div>
         <label className="flex items-center gap-2.5 cursor-pointer select-none">
           <input type="checkbox" checked={f.half} onChange={upd('half')} className="h-4 w-4 rounded accent-primary cursor-pointer" />

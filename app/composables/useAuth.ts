@@ -16,7 +16,7 @@ export const useAuth = () => {
     if (creds.organization_id) form.append('organization_id', String(creds.organization_id))
 
     const res = await $fetch<ApiResponse<{ token: string; refresh_token: string }>>(
-      `${base}/api/auth/login`,
+      `${base}/auth/login`,
       { method: 'POST', body: form },
     )
     if (res.status !== 1 || !res.data) {
@@ -31,7 +31,7 @@ export const useAuth = () => {
   async function logout() {
     try {
       if (token.value) {
-        await $fetch(`${base}/api/auth/logout`, {
+        await $fetch(`${base}/auth/logout`, {
           method: 'GET',
           headers: { Authorization: `Bearer ${token.value}` },
         })
@@ -46,13 +46,17 @@ export const useAuth = () => {
   async function fetchUser(): Promise<AuthUser | null> {
     if (!token.value) return null
     try {
-      const res = await $fetch<ApiResponse<AuthUser>>(`${base}/api/user/getuser`, {
+      const res = await $fetch<ApiResponse<AuthUser & { first_name?: string; last_name?: string }>>(`${base}/api/user/getuser`, {
         method: 'GET',
         headers: { Authorization: `Bearer ${token.value}` },
       })
       if (res.status === 1 && res.data) {
-        user.value = res.data
-        return res.data
+        const d = res.data
+        user.value = {
+          ...d,
+          name: [d.first_name, d.last_name].filter(Boolean).join(' ') || d.email,
+        }
+        return user.value
       }
     } catch { /* session may have expired */ }
     return null
@@ -62,7 +66,7 @@ export const useAuth = () => {
     if (!refreshToken.value) return null
     try {
       const res = await $fetch<ApiResponse<{ token: string; refresh_token: string }>>(
-        `${base}/api/auth/refresh`,
+        `${base}/auth/refresh`,
         { method: 'POST', body: { refresh_token: refreshToken.value } },
       )
       if (res.status === 1 && res.data) {

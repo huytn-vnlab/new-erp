@@ -225,14 +225,12 @@ const ProjectModal = ({ open, editing, onClose, onSubmit }) => {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <PLabel req>Ngày bắt đầu</PLabel>
-              <input type="date" value={form.start} onChange={upd('start')}
-                className={'w-full h-9 px-3 rounded-lg border text-[13px] text-foreground outline-none bg-card ' + (errors.start ? 'border-red-400' : 'border-border focus:border-primary/60')} />
+              <DatePicker value={form.start} onChange={upd('start')} width="100%" error={!!errors.start} />
               {errors.start && <p className="text-[11.5px] text-red-400 mt-1">{errors.start}</p>}
             </div>
             <div>
               <PLabel>Ngày kết thúc dự kiến</PLabel>
-              <input type="date" value={form.end} onChange={upd('end')}
-                className="w-full h-9 px-3 rounded-lg border border-border bg-card text-[13px] text-foreground outline-none focus:border-primary/60" />
+              <DatePicker value={form.end} onChange={upd('end')} width="100%" />
             </div>
           </div>
 

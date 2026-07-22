@@ -3,15 +3,11 @@ import { computed, onMounted } from 'vue'
 import { Calendar, LogIn, LogOut, Check, FileText, Timer, Clock, Users, Folder } from 'lucide-vue-next'
 import { useTimekeepingStore } from '~/stores/timekeeping'
 
+const { t, locale } = useI18n()
 const auth = useAuth()
 const tkStore = useTimekeepingStore()
 
 const userName = computed(() => auth.user.value?.name ?? 'Người dùng')
-const nameParts = computed(() => {
-  const parts = userName.value.trim().split(/\s+/)
-  if (parts.length <= 1) return { ho: parts[0] ?? '', ten: '' }
-  return { ho: parts[0]!, ten: parts.slice(1).join(' ') }
-})
 
 const checkinState = computed<'none' | 'in' | 'out'>(() => {
   if (!tkStore.today) return 'none'
@@ -19,21 +15,30 @@ const checkinState = computed<'none' | 'in' | 'out'>(() => {
   if (tkStore.today.check_in_time) return 'in'
   return 'none'
 })
-// Extract HH:mm from "yyyy/MM/dd hh:mm AM"
 const checkinTimeDisplay = computed(() => {
   if (!tkStore.today?.check_in_time) return ''
   const parts = tkStore.today.check_in_time.split(' ')
-  return parts.slice(1).join(' ') // "hh:mm AM"
+  return parts.slice(1).join(' ')
 })
 
+const localeMap: Record<string, string> = { vi: 'vi-VN', en: 'en-US', ja: 'ja-JP' }
+const dateLocale = computed(() => localeMap[locale.value] ?? 'vi-VN')
+
 const now = new Date()
-const serverTime = computed(() => tkStore.today?.time_server?.split(' ')[1]?.slice(0, 5) ?? now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }))
-const greet = computed(() => { const h = now.getHours(); return h < 12 ? 'Chào buổi sáng' : h < 18 ? 'Chào buổi chiều' : 'Chào buổi tối' })
-const dateStr = now.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-const QUICK = [
-  { l: 'Tạo đơn nghỉ', i: FileText }, { l: 'Yêu cầu tăng ca', i: Timer },
-  { l: 'Xem lịch chấm công', i: Clock }, { l: 'Hồ sơ nhân viên', i: Users }, { l: 'Tạo dự án', i: Folder },
-]
+const serverTime = computed(() => tkStore.today?.time_server?.split(' ')[1]?.slice(0, 5) ?? now.toLocaleTimeString(dateLocale.value, { hour: '2-digit', minute: '2-digit' }))
+const greet = computed(() => {
+  const h = now.getHours()
+  return h < 12 ? t('home.banner.greetMorning') : h < 18 ? t('home.banner.greetAfternoon') : t('home.banner.greetEvening')
+})
+const dateStr = computed(() => now.toLocaleDateString(dateLocale.value, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))
+
+const QUICK = computed(() => [
+  { l: t('home.banner.quickLeave'), i: FileText, to: '/hrm/leave' },
+  { l: t('home.banner.quickOvertime'), i: Timer, to: '/request/overtime' },
+  { l: t('home.banner.quickTimekeeping'), i: Clock, to: '/hrm/timekeeping' },
+  { l: t('home.banner.quickProfile'), i: Users, to: '/hrm/member/profile' },
+  { l: t('home.banner.quickProject'), i: Folder, to: '/workflow/project' },
+])
 
 async function handleCheckIn() {
   await tkStore.checkIn()
@@ -62,9 +67,8 @@ onMounted(() => { tkStore.fetchToday() })
     <div class="relative p-6 flex items-stretch justify-between gap-6 flex-wrap">
       <div class="min-w-0">
         <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{{ greet }},</p>
-        <h1 class="font-display mt-1.5 leading-[1.05] text-foreground" style="font-size:36px;font-weight:500;letter-spacing:-0.025em">
-          {{ nameParts.ho }}
-          <span v-if="nameParts.ten" style="font-style:italic;font-weight:400;color:hsl(var(--primary-h) var(--primary-s) 47%)">{{ nameParts.ten }}</span>
+        <h1 class="font-display mt-1.5 leading-[1.05]" style="font-size:36px;font-weight:500;letter-spacing:-0.025em;color:hsl(var(--primary-h) var(--primary-s) 47%)">
+          {{ userName }}
         </h1>
         <div class="mt-3 flex items-center gap-3 text-[12.5px] text-muted-foreground">
           <span class="inline-flex items-center gap-1.5"><Calendar :size="13" />{{ dateStr }}</span>
@@ -75,10 +79,10 @@ onMounted(() => { tkStore.fetchToday() })
 
       <div class="flex items-center gap-4">
         <div class="hidden sm:block text-right">
-          <p class="text-[12px] text-muted-foreground uppercase tracking-wider font-medium">Trạng thái hôm nay</p>
-          <p v-if="checkinState === 'in'" class="text-[13px] text-foreground mt-1">Đã chấm công vào lúc <span class="font-semibold tabular-nums">{{ checkinTimeDisplay }}</span></p>
-          <p v-else-if="checkinState === 'out'" class="text-[13px] text-foreground mt-1">Đã hoàn tất chấm công <span class="text-emerald-600 font-semibold">✓</span></p>
-          <p v-else class="text-[13px] text-foreground mt-1">Bạn chưa chấm công vào</p>
+          <p class="text-[12px] text-muted-foreground uppercase tracking-wider font-medium">{{ t('home.banner.statusTitle') }}</p>
+          <p v-if="checkinState === 'in'" class="text-[13px] text-foreground mt-1">{{ t('home.banner.checkedIn', { time: checkinTimeDisplay }) }}</p>
+          <p v-else-if="checkinState === 'out'" class="text-[13px] text-foreground mt-1">{{ t('home.banner.checkedOut') }}</p>
+          <p v-else class="text-[13px] text-foreground mt-1">{{ t('home.banner.notCheckedIn') }}</p>
         </div>
         <button
           v-if="checkinState === 'none'"
@@ -86,20 +90,20 @@ onMounted(() => { tkStore.fetchToday() })
           :style="{ background: 'linear-gradient(135deg, hsl(var(--primary-h) var(--primary-s) 60%), hsl(var(--primary-h) var(--primary-s) 42%))' }"
           @click="handleCheckIn"
         >
-          <LogIn :size="15" />Chấm công vào
+          <LogIn :size="15" />{{ t('home.banner.checkIn') }}
         </button>
         <button v-else-if="checkinState === 'in'" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg text-[13px] font-semibold border border-border bg-card text-foreground hover:border-primary transition-colors" @click="handleCheckOut">
-          <LogOut :size="15" />Chấm công ra
+          <LogOut :size="15" />{{ t('home.banner.checkOut') }}
         </button>
         <button v-else class="inline-flex items-center gap-2 h-10 px-4 rounded-lg text-[13px] font-semibold border border-border bg-muted/50 text-muted-foreground cursor-default">
-          <Check :size="15" />Đã hoàn tất
+          <Check :size="15" />{{ t('home.banner.done') }}
         </button>
       </div>
     </div>
 
     <div class="relative border-t border-border/70 px-6 py-3 flex items-center gap-1 flex-wrap text-[12.5px]">
-      <span class="text-muted-foreground mr-2 font-medium">Truy cập nhanh:</span>
-      <button v-for="(a, i) in QUICK" :key="i" class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-foreground/80 hover:bg-muted hover:text-primary transition-colors">
+      <span class="text-muted-foreground mr-2 font-medium">{{ t('home.banner.quickAccess') }}</span>
+      <button v-for="(a, i) in QUICK" :key="i" class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-foreground/80 hover:bg-muted hover:text-primary transition-colors" @click="navigateTo(a.to)">
         <component :is="a.i" :size="13" />{{ a.l }}
       </button>
     </div>

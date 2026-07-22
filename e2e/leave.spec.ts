@@ -6,13 +6,13 @@ import {
 } from './helpers/fixtures'
 
 const LEAVE_ROUTES = {
-  requests: '**/api/leave/get-leave-requests',
-  info: '**/api/leave/get-leave-info',
-  bonuses: '**/api/leave/get-leave-bonuses',
-  create: '**/api/leave/create-leave',
-  updateStatus: '**/api/leave/update-leave-request-status',
-  infoAll: '**/api/leave/get-leave-info-all-user',
-  members: '**/api/user/get-list-item-profile',
+  requests: '**/leave/get-leave-requests',
+  info: '**/leave/get-leave-info',
+  bonuses: '**/leave/get-leave-bonuses',
+  create: '**/leave/create-leave',
+  updateStatus: '**/leave/update-leave-request-status',
+  infoAll: '**/leave/get-leave-info-all-user',
+  members: '**/user/get-list-item-profile',
 }
 
 async function setupLeave(page: Page, overrides: Partial<Record<keyof typeof LEAVE_ROUTES, 'error' | 'empty' | 'ok'>> = {}) {

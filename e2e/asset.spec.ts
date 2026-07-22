@@ -3,11 +3,11 @@ import { mockAuth } from './helpers/auth'
 import { mockApi, mockApiError, MOCK_ASSET_ROW, MOCK_PAGINATION } from './helpers/fixtures'
 
 const ROUTES = {
-  assets: '**/api/asset/get-assets-list',
-  types: '**/api/asset/get-asset-type-list',
-  create: '**/api/asset/create-asset',
-  update: '**/api/asset/update-asset',
-  delete: '**/api/asset/delete-asset-by-id',
+  assets: '**/asset/get-assets-list',
+  types: '**/asset/get-asset-type-list',
+  create: '**/asset/create-asset',
+  update: '**/asset/update-asset',
+  delete: '**/asset/delete-asset-by-id',
 }
 
 async function setup(page: Page, empty = false) {

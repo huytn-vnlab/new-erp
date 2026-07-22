@@ -149,8 +149,9 @@ input[type="checkbox"] { -webkit-appearance: none; appearance: none; width: 14px
 input[type="checkbox"]:checked, input[type="checkbox"]:indeterminate { background: hsl(var(--primary)); border-color: hsl(var(--primary)); }
 input[type="checkbox"]:checked::after { content: ''; position: absolute; left: 3px; top: .5px; width: 5px; height: 9px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg); }
 input:focus, textarea:focus, select:focus, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: none !important; box-shadow: none !important; }
+button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
 
-.nav-item { position: relative; color: hsl(var(--foreground) / 0.82); transition: background-color .16s ease, transform .16s ease; }
+.nav-item { position: relative; color: hsl(var(--foreground) / 0.82); transition: background-color .16s ease, transform .16s ease; cursor: pointer; }
 .nav-item.sidebar-item-active, .nav-item.is-sub.sidebar-item-active { color: #fff; }
 .nav-item.is-sub { color: hsl(var(--foreground) / 0.72); }
 .nav-item:hover:not(.sidebar-item-active) { background-color: hsl(var(--primary-h) 70% 90%); color: hsl(var(--primary-h) 80% 30%); transform: translateX(2px); }

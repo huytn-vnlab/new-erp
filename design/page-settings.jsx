@@ -37,11 +37,15 @@ const SF = ({ label, req, children, hint }) => (
 );
 
 const SI = ({ value, onChange, placeholder, type = 'text', min, step }) => (
-  <input
-    type={type} value={value ?? ''} onChange={onChange}
-    placeholder={placeholder} min={min} step={step}
-    className="w-full h-9 px-3 rounded-lg border border-border bg-card text-[13px] text-foreground outline-none focus:border-primary/60 transition-colors placeholder:text-muted-foreground/50"
-  />
+  type === 'date' ? (
+    <DatePicker value={value} onChange={onChange} width="100%" />
+  ) : (
+    <input
+      type={type} value={value ?? ''} onChange={onChange}
+      placeholder={placeholder} min={min} step={step}
+      className="w-full h-9 px-3 rounded-lg border border-border bg-card text-[13px] text-foreground outline-none focus:border-primary/60 transition-colors placeholder:text-muted-foreground/50"
+    />
+  )
 );
 
 const SDrop = ({ value, onChange, options }) => (

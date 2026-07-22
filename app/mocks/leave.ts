@@ -1,15 +1,33 @@
-export type LeaveType =
-  | 'Nghỉ cả ngày'
-  | 'Nghỉ buổi sáng'
-  | 'Nghỉ buổi chiều'
-  | 'Đi muộn'
-  | 'Về sớm'
-  | 'Ra ngoài'
-  | 'Làm ở nhà'
-  | 'Công tác'
-  | 'Khác'
+// Numeric leave_request_type_id (1-9) — the stable key. Never key styling/lookups
+// by the translated label since it changes with locale.
+export type LeaveType = number
 
 export type LeaveStatus = 'pending' | 'approved' | 'rejected'
+
+// i18n key (not literal text) per leave_request_type_id — resolve with t() at display time.
+export const LEAVE_TYPE_ID_MAP: Record<number, string> = {
+  1: 'hrm.leave.type.fullDay',
+  2: 'hrm.leave.type.morningOff',
+  3: 'hrm.leave.type.afternoonOff',
+  4: 'hrm.leave.type.late',
+  5: 'hrm.leave.type.early',
+  6: 'hrm.leave.type.goOut',
+  7: 'hrm.leave.type.workAtHome',
+  8: 'hrm.leave.type.businessTrip',
+  9: 'hrm.leave.type.other',
+}
+
+// i18n key (not literal text) per leave_bonus_type_id — resolve with t() at display time.
+export const BONUS_TYPE_ID_MAP: Record<number, string> = {
+  1: 'hrm.leave.bonusType.annual',
+  2: 'hrm.leave.bonusType.seniority',
+  3: 'hrm.leave.bonusType.sick',
+  4: 'hrm.leave.bonusType.wedding',
+  5: 'hrm.leave.bonusType.maternity',
+  6: 'hrm.leave.bonusType.funeral',
+  7: 'hrm.leave.bonusType.payout',
+  8: 'hrm.leave.bonusType.overtime',
+}
 
 export type LeaveMember = { id: number; name: string; branch: string }
 
@@ -58,33 +76,33 @@ export const LEAVE_MEMBERS: LeaveMember[] = [
 type BadgeVariant = 'gray' | 'primary' | 'green' | 'red' | 'amber' | 'sky' | 'violet'
 
 export const LEAVE_TYPE_META: Record<LeaveType, { variant: BadgeVariant; color: string; bg: string }> = {
-  'Nghỉ cả ngày':    { variant: 'primary', color: 'hsl(var(--primary))',          bg: 'hsl(var(--primary-h) var(--primary-s) 57% / 0.12)' },
-  'Nghỉ buổi sáng':  { variant: 'sky',     color: 'hsl(199 89% 45%)',             bg: 'hsl(199 89% 48% / 0.13)' },
-  'Nghỉ buổi chiều': { variant: 'violet',  color: 'hsl(265 60% 52%)',             bg: 'hsl(265 60% 55% / 0.13)' },
-  'Đi muộn':         { variant: 'amber',   color: 'hsl(38 92% 42%)',              bg: 'hsl(38 92% 50% / 0.14)' },
-  'Về sớm':          { variant: 'amber',   color: 'hsl(25 90% 48%)',              bg: 'hsl(25 90% 52% / 0.14)' },
-  'Ra ngoài':        { variant: 'sky',     color: 'hsl(180 60% 36%)',             bg: 'hsl(180 60% 42% / 0.14)' },
-  'Làm ở nhà':       { variant: 'green',   color: 'hsl(160 60% 38%)',             bg: 'hsl(160 60% 45% / 0.13)' },
-  'Công tác':        { variant: 'violet',  color: 'hsl(231 60% 52%)',             bg: 'hsl(231 60% 55% / 0.13)' },
-  'Khác':            { variant: 'gray',    color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted-foreground) / 0.12)' },
+  1: { variant: 'primary', color: 'hsl(var(--primary))',          bg: 'hsl(var(--primary-h) var(--primary-s) 57% / 0.12)' }, // Nghỉ cả ngày
+  2: { variant: 'sky',     color: 'hsl(199 89% 45%)',             bg: 'hsl(199 89% 48% / 0.13)' },                           // Nghỉ buổi sáng
+  3: { variant: 'violet',  color: 'hsl(265 60% 52%)',             bg: 'hsl(265 60% 55% / 0.13)' },                           // Nghỉ buổi chiều
+  4: { variant: 'amber',   color: 'hsl(38 92% 42%)',              bg: 'hsl(38 92% 50% / 0.14)' },                            // Đi muộn
+  5: { variant: 'amber',   color: 'hsl(25 90% 48%)',              bg: 'hsl(25 90% 52% / 0.14)' },                            // Về sớm
+  6: { variant: 'sky',     color: 'hsl(180 60% 36%)',             bg: 'hsl(180 60% 42% / 0.14)' },                           // Ra ngoài
+  7: { variant: 'green',   color: 'hsl(160 60% 38%)',             bg: 'hsl(160 60% 45% / 0.13)' },                           // Làm ở nhà
+  8: { variant: 'violet',  color: 'hsl(231 60% 52%)',             bg: 'hsl(231 60% 55% / 0.13)' },                           // Công tác
+  9: { variant: 'gray',    color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted-foreground) / 0.12)' },               // Khác
 }
 
-export const LEAVE_TYPES: LeaveType[] = Object.keys(LEAVE_TYPE_META) as LeaveType[]
+export const LEAVE_TYPES: LeaveType[] = Object.keys(LEAVE_TYPE_META).map(Number)
 
-export const LEAVE_STATUS_META: Record<LeaveStatus, { label: string; variant: BadgeVariant }> = {
-  pending:  { label: 'Chờ duyệt', variant: 'amber' },
-  approved: { label: 'Đã duyệt',  variant: 'green' },
-  rejected: { label: 'Từ chối',   variant: 'red' },
+export const LEAVE_STATUS_META: Record<LeaveStatus, { labelKey: string; variant: BadgeVariant }> = {
+  pending:  { labelKey: 'hrm.leave.status.pending',  variant: 'amber' },
+  approved: { labelKey: 'hrm.leave.status.approved', variant: 'green' },
+  rejected: { labelKey: 'hrm.leave.status.rejected', variant: 'red' },
 }
 
 export const LEAVE_ENTRIES: LeaveEntry[] = [
-  { id: 1, memberId: 4,  type: 'Nghỉ cả ngày',    from: '2026-06-02', to: '2026-06-03', status: 'approved', reason: 'Du lịch gia đình',           half: false },
-  { id: 2, memberId: 6,  type: 'Nghỉ buổi sáng',  from: '2026-06-01', to: '2026-06-01', status: 'pending',  reason: 'Khám bệnh buổi sáng',        half: true  },
-  { id: 3, memberId: 9,  type: 'Công tác',         from: '2026-06-04', to: '2026-06-05', status: 'approved', reason: 'Công tác khách hàng Osaka',   half: false },
-  { id: 4, memberId: 1,  type: 'Đi muộn',          from: '2026-06-05', to: '2026-06-05', status: 'pending',  reason: 'Kẹt xe / việc gia đình',      half: true  },
-  { id: 5, memberId: 8,  type: 'Làm ở nhà',        from: '2026-06-03', to: '2026-06-06', status: 'approved', reason: 'Work from home',              half: false },
-  { id: 6, memberId: 3,  type: 'Về sớm',           from: '2026-06-04', to: '2026-06-04', status: 'approved', reason: 'Đón con',                     half: true  },
-  { id: 7, memberId: 10, type: 'Ra ngoài',          from: '2026-06-06', to: '2026-06-07', status: 'pending',  reason: 'Việc cá nhân',               half: false },
+  { id: 1, memberId: 4,  type: 1, from: '2026-06-02', to: '2026-06-03', status: 'approved', reason: 'Du lịch gia đình',           half: false },
+  { id: 2, memberId: 6,  type: 2, from: '2026-06-01', to: '2026-06-01', status: 'pending',  reason: 'Khám bệnh buổi sáng',        half: true  },
+  { id: 3, memberId: 9,  type: 8, from: '2026-06-04', to: '2026-06-05', status: 'approved', reason: 'Công tác khách hàng Osaka',   half: false },
+  { id: 4, memberId: 1,  type: 4, from: '2026-06-05', to: '2026-06-05', status: 'pending',  reason: 'Kẹt xe / việc gia đình',      half: true  },
+  { id: 5, memberId: 8,  type: 7, from: '2026-06-03', to: '2026-06-06', status: 'approved', reason: 'Work from home',              half: false },
+  { id: 6, memberId: 3,  type: 5, from: '2026-06-04', to: '2026-06-04', status: 'approved', reason: 'Đón con',                     half: true  },
+  { id: 7, memberId: 10, type: 6, from: '2026-06-06', to: '2026-06-07', status: 'pending',  reason: 'Việc cá nhân',               half: false },
 ]
 
 export const LEAVE_INFO_ROWS: LeaveInfoRow[] = [

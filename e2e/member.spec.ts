@@ -3,10 +3,10 @@ import { mockAuth } from './helpers/auth'
 import { mockApi, mockApiEmpty, mockApiError, MOCK_MEMBER_ROW, MOCK_BRANCH, MOCK_PAGINATION } from './helpers/fixtures'
 
 const ROUTES = {
-  members: '**/api/user/get-list-item-profile',
-  branches: '**/api/setting/branch/get-branches',
-  invite: '**/api/register/inviteUser',
-  delete: '**/api/user/delete-user',
+  members: '**/user/get-list-item-profile',
+  branches: '**/setting/branch/get-branches',
+  invite: '**/register/inviteUser',
+  delete: '**/user/delete-user',
 }
 
 async function setupMember(page: Page, empty = false) {

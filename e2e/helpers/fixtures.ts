@@ -73,14 +73,37 @@ export const MOCK_CONTRACT_ROW = {
   end_date: '2026-06-30', status: 1,
 }
 
+// Matches POST /overtime/get-overtime-requests' `ot_requests[]` row shape — a
+// hand-built response where status/overtime_type are pre-translated English
+// strings ("Pending"/"Deny"/"Accepted", "Take Day Off"/"Take Money"), not ints.
 export const MOCK_OVERTIME_ROW = {
-  id: 1, user_id: 1, full_name: 'Test Admin', branch: 'Hà Nội',
-  overtime_type: 1, date: '2026-06-01', hours: 2, reason: 'Dự án X', status: 1,
+  id: 1, full_name: 'Test Admin', branch: 'Hà Nội', project_name: 'Dự án X',
+  status: 'Pending', overtime_type: 'Take Day Off',
+  date_overtime: '2026/06/01', time_overtime: '18:00-20:00',
+  week_day: 'Monday', working_time: 2,
 }
 
+// Matches the real backend shape (m.Project via projects.GetProjectList) —
+// `project_id` (not `id`), `managed_by` as a raw user id (resolved to a display
+// name client-side via the accompanying `users` id→name map), a real
+// `project_targets` array ({year,quarter,content}, no `weight`/`id` — those
+// don't exist in the backend's Target model), and `status` (1=active,
+// 2=ended — added via migration, existing rows default to 1).
 export const MOCK_PROJECT_ROW = {
-  id: 1, project_name: 'Dự án Alpha', managed_by: 1, manager_name: 'Test Admin',
-  project_description: 'Mô tả dự án', status: 1, created_at: '2026-01-01',
+  project_id: 1, project_name: 'Dự án Alpha', managed_by: 1, status: 1,
+  project_description: 'Mô tả dự án', created_at: '2026-01-01',
+  project_targets: [{ year: 2026, quarter: 3, content: 'Hoàn thiện module báo cáo.' }],
+}
+export const MOCK_PROJECT_USERS = { '1': 'Test Admin', '2': 'Trần Ngọc Huy' }
+export const MOCK_PROJECT_DETAIL = {
+  project_id: 1, name: 'Dự án Alpha', description: 'Mô tả dự án', managed_by: 1, status: 1,
+  targets: [{ year: 2026, quarter: 3, content: 'Hoàn thiện module báo cáo.' }],
+  users: MOCK_PROJECT_USERS, users_id_join_project: [1],
+}
+export const MOCK_PROJECT_MEMBERS = {
+  user_box: MOCK_PROJECT_USERS, branch_box: { '1': 'Hà Nội' },
+  user_branch_list: [{ user_id: 1, branch: 1 }],
+  user_projects: [{ id: 10, user_id: 1, date_joined: '2026-01-01', branch: 1, is_deleted: false }],
 }
 
 export const MOCK_EVALUATION_ROW = {
@@ -89,6 +112,42 @@ export const MOCK_EVALUATION_ROW = {
 }
 
 export const MOCK_JOB_ROW = {
-  id: 1, title: 'Senior Developer', description: 'Mô tả', status: 1,
-  created_at: '2026-01-01', application_count: 3,
+  id: 1, job_name: 'Senior Developer', start_date: '2026-01-01', expiry_date: '2099-12-31',
+  branch_ids: [24], assignees: [1],
+}
+export const MOCK_JOB_BRANCHES = { 24: 'Hà Nội', 25: 'Hồ Chí Minh' }
+export const MOCK_JOB_USERS = { 1: 'Test Admin' }
+
+// ── Settings ──────────────────────────────────────────────────────────────
+// GetBranches/GetJobTitles/GetTechnologies all return a raw array as `data`
+// (no `{branches:[...]}` wrapper, no `category`/`priority` on read).
+export const MOCK_JOB_TITLE = { id: 1, name: 'Software Engineer' }
+export const MOCK_TECH = { id: 1, name: 'ReactJS' }
+
+// GetHolidays wraps as `{holidays:[...]}`; fields are `description`/
+// `holiday_date` (not `name`/`date`), holiday_date formatted "YYYY/MM/DD".
+export const MOCK_HOLIDAY = { id: 1, description: 'Tết Dương Lịch', holiday_date: '2026/01/01', organization_id: 1 }
+
+export const MOCK_ORG_SETTING = { email: 'vnlab@vietnamlab.vn', expiration_reset_day_off: 3 }
+
+export const MOCK_OVERTIME_WEIGHT = { id: 1, normal_day_weight: 1, weekend_weight: 1.5, holiday_weight: 3 }
+
+export const MOCK_MODULES = [
+  { id: 1, name: 'Base HRM' }, { id: 2, name: 'Base Goal' }, { id: 3, name: 'Base Work' },
+  { id: 4, name: 'Base E-Hiring' }, { id: 5, name: 'Base Request' },
+  { id: 6, name: 'Base Asset' }, { id: 7, name: 'Base Asset' },
+]
+
+export const MOCK_PERM_USER = {
+  id: 2, email: 'quytc@yopmail.com', first_name: 'Trần', last_name: 'Cao Quý', roleId: 4, avatar: '', has_custom: 39,
+}
+export const MOCK_PERM_USERS_PAGE = { pagination: { current_page: 1, total_row: 1, row_per_page: 20 }, user_permissions: [MOCK_PERM_USER] }
+
+// GetPermissions groups by module_id key (1-5); status is boolean (cf.PermissionStatus map).
+export const MOCK_USER_PERMISSIONS = {
+  1: [{ function_id: 1, name: 'Profile list', status: true }, { function_id: 2, name: 'Edit profile', status: false }],
+  2: [{ function_id: 21, name: 'Create evaluation user', status: true }],
+  3: [{ function_id: 25, name: 'Board', status: true }],
+  4: [{ function_id: 32, name: 'Create recruitment', status: false }],
+  5: [{ function_id: 37, name: 'Create overtime', status: true }],
 }

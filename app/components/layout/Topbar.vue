@@ -3,7 +3,8 @@ import { ref, computed } from 'vue'
 import { onClickOutside } from '@vueuse/core'
 import { Menu, Bell, Moon, Sun, ChevronDown, Check } from 'lucide-vue-next'
 import Breadcrumb from './Breadcrumb.vue'
-import { useNotificationStore } from '~/stores/notification'
+import { useNotificationStore, type NotificationItem } from '~/stores/notification'
+import { mapNotificationRoute } from '~/utils/notificationRoute'
 
 defineProps<{ crumbs: { label: string }[]; isDark: boolean; locale: string; unread: number }>()
 const emit = defineEmits<{ toggleTheme: []; 'update:locale': [string]; toggleSidebar: [] }>()
@@ -13,6 +14,7 @@ const LOCALE_NAMES: Record<string, string> = { vi: 'Tiếng Việt', en: 'Englis
 
 const auth = useAuth()
 const notiStore = useNotificationStore()
+const { translateContent, timeSince } = useNotification()
 
 const userName = computed(() => auth.user.value?.name ?? 'Người dùng')
 const userEmail = computed(() => auth.user.value?.email ?? '')
@@ -43,6 +45,13 @@ function openBell() {
   if (bellOpen.value && notiStore.notifications.length === 0) {
     notiStore.fetchNotifications()
   }
+}
+
+async function openNotification(n: NotificationItem) {
+  await notiStore.markOneRead(n.id)
+  const route = mapNotificationRoute(n.redirect_url)
+  bellOpen.value = false
+  if (route) await navigateTo(route)
 }
 
 const root = ref<HTMLElement>()
@@ -108,11 +117,12 @@ onClickOutside(root, closeAll)
           <li
             v-for="n in notiStore.notifications" v-else :key="n.id"
             class="px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer flex gap-3"
+            @click="openNotification(n)"
           >
-            <span :class="'mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ' + (n.status === 0 ? 'bg-primary' : 'bg-muted-foreground/40')" />
+            <span :class="'mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ' + (n.status === 1 ? 'bg-primary' : 'bg-muted-foreground/40')" />
             <div class="min-w-0 flex-1">
-              <p class="text-[13px] text-foreground leading-snug">{{ n.content }}</p>
-              <p class="text-[11px] text-muted-foreground mt-0.5">{{ n.sender }} · {{ n.created_at }}</p>
+              <p class="text-[13px] text-foreground leading-snug">{{ n.sender }} {{ translateContent(n.content) }}</p>
+              <p class="text-[11px] text-muted-foreground mt-0.5">{{ timeSince(n.created_at) }}</p>
             </div>
           </li>
         </ul>
@@ -144,7 +154,6 @@ onClickOutside(root, closeAll)
         </div>
         <div class="py-1 text-[13px]">
           <button class="w-full px-3 py-2 text-left hover:bg-muted transition-colors text-foreground/90" @click="goProfile">Hồ sơ cá nhân</button>
-          <button class="w-full px-3 py-2 text-left hover:bg-muted transition-colors text-foreground/90" @click="goChangePassword">Đổi mật khẩu</button>
           <div class="my-1 border-t border-border" />
           <button class="w-full px-3 py-2 text-left hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 transition-colors" @click="handleLogout">Đăng xuất</button>
         </div>

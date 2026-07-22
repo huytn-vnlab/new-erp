@@ -5,7 +5,8 @@ import { cn } from '~/utils/cn'
 const props = withDefaults(defineProps<{
   variant?: 'primary' | 'outline' | 'ghost' | 'danger' | 'success'
   size?: 'xs' | 'sm' | 'md'
-}>(), { variant: 'primary', size: 'md' })
+  disabled?: boolean
+}>(), { variant: 'primary', size: 'md', disabled: false })
 
 defineEmits<{ click: [MouseEvent] }>()
 
@@ -29,7 +30,8 @@ const style = computed(() => props.variant === 'primary'
 
 <template>
   <button
-    :class="cn('inline-flex items-center gap-1.5 rounded-md font-semibold transition-all whitespace-nowrap', sizeCls, variantCls)"
+    :disabled="disabled"
+    :class="cn('inline-flex items-center gap-1.5 rounded-md font-semibold transition-all whitespace-nowrap', sizeCls, variantCls, disabled && 'opacity-40 cursor-not-allowed pointer-events-none')"
     :style="style"
     @click="$emit('click', $event)"
   >

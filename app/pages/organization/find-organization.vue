@@ -13,7 +13,7 @@
 
     <Form v-slot="{ isSubmitting }" :validation-schema="schema" @submit="onSubmit">
       <div class="mb-4">
-        <Field v-slot="{ field, errors }" name="keyword">
+        <Field v-slot="{ field, errors }" name="keyword" :validate-on-blur="false" :validate-on-input="false">
           <input
             v-bind="field"
             :placeholder="$t('org.findPlaceholder')"
@@ -53,6 +53,7 @@ import { Form, Field } from 'vee-validate'
 import * as z from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
 import logoBlue from '~/assets/images/logoblue.png'
+import AppAlert from '~/components/AppAlert.vue'
 
 definePageMeta({
   layout: 'auth',
@@ -68,21 +69,21 @@ const errorMsg = ref('')
 const { t }    = useI18n()
 
 const schema = toTypedSchema(z.object({
-  keyword: z.string().min(2, t('org.findMin')),
+  keyword: z.string({ required_error: t('org.findMin') }).min(2, t('org.findMin')),
 }))
 
 async function onSubmit(values: Record<string, unknown>) {
   errorMsg.value = ''
   foundOrg.value = null
 
-  const formData = new FormData()
-  formData.append('tag_organization', values.keyword as string)
+  const body = new URLSearchParams()
+  body.append('tag_organization', values.keyword as string)
 
   try {
     const config = useRuntimeConfig()
     const res = await $fetch<{ status: number; message: string; data: { id: number; name: string; tag: string } | null }>(
       `${config.public.apiBase}/api/organization/find-organization`,
-      { method: 'POST', body: formData }
+      { method: 'POST', body: body.toString(), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     )
     if (res.status === 1 && res.data) {
       foundOrg.value = res.data
