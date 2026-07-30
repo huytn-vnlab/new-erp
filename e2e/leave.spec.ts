@@ -95,8 +95,8 @@ test.describe('Leave — approve & reject', () => {
     await expect(page.getByText('Nguyễn Văn A')).toBeVisible()
     // Click the entry cell in the LeaveGrid to open the detail drawer
     await page.locator('tr:has-text("Nguyễn Văn A") td button').first().click()
-    // Approve from the drawer (force bypasses the floating Tweaks panel overlay)
-    await page.getByRole('button', { name: /duyệt đơn/i }).click({ force: true })
+    // Approve from the drawer
+    await page.getByRole('button', { name: /duyệt đơn/i }).click()
     await expect(page.getByText(/đã duyệt/i)).toBeVisible()
   })
 

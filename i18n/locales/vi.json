@@ -359,6 +359,24 @@
     "title": "Thông báo",
     "markAll": "Đánh dấu tất cả đã đọc",
     "empty": "Không có thông báo mới",
+    "subtitle": "{unread} chưa đọc · {total} tổng cộng",
+    "tabAll": "Tất cả",
+    "tabUnread": "Chưa đọc",
+    "tabUnreadCount": "Chưa đọc · {n}",
+    "category": {
+      "leave": "Nghỉ phép",
+      "overtime": "Tăng ca",
+      "project": "Dự án",
+      "asset": "Tài sản",
+      "recruitment": "Tuyển dụng",
+      "timekeeping": "Chấm công",
+      "system": "Hệ thống"
+    },
+    "group": {
+      "today": "Hôm nay",
+      "week": "Tuần này",
+      "older": "Cũ hơn"
+    },
     "content": {
       "createLeave": "đã tạo một yêu cầu xin nghỉ",
       "createOT": "đã tạo một yêu cầu làm thêm giờ",
@@ -443,6 +461,17 @@
       "evalDetail": "Xem chi tiết →",
       "rankCol": "Rank",
       "trendCol": "Xu hướng"
+    },
+    "calendar": {
+      "title": "Lịch nhắc nhở",
+      "subtitle": "{n} sự kiện trong tháng {month}/{year}",
+      "typeBirthday": "Sinh nhật",
+      "typeAnniversary": "Kỷ niệm vào công ty",
+      "typeContract": "Gia hạn hợp đồng",
+      "more": "khác",
+      "dayDetail": "Chi tiết ngày",
+      "noEventsOnDay": "Không có nhắc nhở nào trong ngày này.",
+      "today": "Hôm nay"
     },
     "personal": {
       "info": "Thông tin cá nhân",
@@ -835,8 +864,6 @@
         "balanceUsed": "Đã dùng",
         "balancePrevYear": "Năm trước",
         "daysUnit": "ngày",
-        "onBehalfLabel": "Tạo đơn cho",
-        "onBehalfSelf": "Bản thân tôi",
         "typeLabel": "Loại nghỉ phép",
         "typePlaceholder": "— Chọn loại nghỉ phép —",
         "typeRequired": "Vui lòng chọn loại nghỉ phép",

@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue'
 import { Cake, Gift, Briefcase } from 'lucide-vue-next'
 import SectionCard from './SectionCard.vue'
+import ReminderCalendarModal from './ReminderCalendarModal.vue'
+import NotificationCenterModal from './NotificationCenterModal.vue'
 import BarRow from '~/components/charts/BarRow.vue'
 import Sparkline from '~/components/charts/Sparkline.vue'
 import { useDashboardStore } from '~/stores/dashboard'
@@ -13,35 +15,31 @@ const { translateContent, timeSince } = useNotification()
 const dashStore = useDashboardStore()
 const notiStore = useNotificationStore()
 
+onMounted(() => {
+  dashStore.fetchStat()
+  dashStore.fetchReminders()
+  notiStore.fetchNotifications()
+  // Not fetchUnreadCount() — admin.vue's layout already fetches it for the
+  // topbar bell badge, and notiStore.unreadCount is a shared Pinia singleton.
+})
+
 async function openNotification(n: NotificationItem) {
   await notiStore.markOneRead(n.id)
   const route = mapNotificationRoute(n.redirect_url)
   if (route) await navigateTo(route)
 }
 
-const notifPageSize = ref(10)
-function viewAllNotifications() {
-  notifPageSize.value = 50
-  notiStore.fetchNotifications(1, notifPageSize.value)
-}
+const calOpen = ref(false)
+const notifOpen = ref(false)
 
 // ── Reminders ─────────────────────────────────────────────────────────────
-const reminders = computed(() => {
-  const r = dashStore.reminders
-  const all: { type: string; text: string; sub: string; date: string; color: string }[] = []
-  for (const b of r.birthdays)
-    all.push({ type: 'birthday', text: t('home.company.birthday', { name: b.fullname }), sub: b.birthday, date: b.birthday, color: 'amber' })
-  for (const a of r.anniversaries)
-    all.push({ type: 'anniversary', text: t('home.company.anniversary', { name: a.fullname }), sub: a.company_joined_date, date: a.company_joined_date, color: 'sky' })
-  for (const c of r.contracts)
-    all.push({ type: 'contract', text: t('home.company.contract', { name: c.fullname }), sub: c.contract_expiration_date, date: c.contract_expiration_date, color: 'emerald' })
-  return all
-})
-
+const { events: reminders } = useReminders(computed(() => dashStore.reminders))
 const hasReminders = computed(() => reminders.value.length > 0)
 
 // ── Notifications ─────────────────────────────────────────────────────────
-const notifs = computed(() => notiStore.notifications)
+// Card only ever shows a short, fixed preview — "Tất cả →" opens the full
+// NotificationCenterModal instead of growing this list in place.
+const notifs = computed(() => notiStore.notifications.slice(0, 5))
 const unread = computed(() => notiStore.unreadCount)
 
 // ── Job titles ─────────────────────────────────────────────────────────────
@@ -119,10 +117,12 @@ const reminderFg = (c: string) => c === 'amber' ? 'hsl(35 90% 45%)' : c === 'sky
 
 <template>
   <div class="space-y-6">
+    <ReminderCalendarModal v-model="calOpen" />
+    <NotificationCenterModal v-model="notifOpen" />
     <!-- Row 1: reminders + notifications -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <SectionCard :delay="50" :title="t('home.company.reminders')">
-        <template #action><button class="text-[12px] text-primary hover:underline" @click="navigateTo('/hrm/leave')">{{ t('home.company.viewCalendar') }}</button></template>
+        <template #action><button class="text-[12px] text-primary hover:underline" @click="calOpen = true">{{ t('home.company.viewCalendar') }}</button></template>
         <div v-if="hasReminders">
           <ul class="space-y-3">
             <li v-for="(r, i) in reminders" :key="i" class="flex items-center gap-3">
@@ -146,11 +146,11 @@ const reminderFg = (c: string) => c === 'amber' ? 'hsl(35 90% 45%)' : c === 'sky
             <span v-if="unread > 0" class="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
               <span class="h-1.5 w-1.5 rounded-full bg-primary live-dot" /> {{ t('home.company.newCount', { n: unread }) }}
             </span>
-            <button class="text-[12px] text-primary hover:underline" @click="viewAllNotifications">{{ t('home.company.viewAll') }}</button>
+            <button class="text-[12px] text-primary hover:underline" @click="notifOpen = true">{{ t('home.company.viewAll') }}</button>
           </div>
         </template>
         <div v-if="notifs.length > 0">
-          <ul class="divide-y divide-border/70 -my-2" :class="notifPageSize > 10 ? 'max-h-[400px] overflow-y-auto scrollbar-thin' : ''">
+          <ul class="divide-y divide-border/70 -my-2">
             <li v-for="n in notifs" :key="n.id" class="py-2.5 flex items-start gap-3 cursor-pointer hover:bg-muted/30 -mx-2 px-2 rounded-md transition-colors" @click="openNotification(n)">
               <span :class="'mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ' + (n.status === 1 ? 'bg-primary' : 'bg-muted-foreground/30')" />
               <div class="min-w-0 flex-1">

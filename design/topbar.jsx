@@ -20,7 +20,7 @@ const FLAGS = {
 };
 const LOCALE_NAMES = { vi: 'Tiếng Việt', en: 'English', ja: '日本語' };
 
-const Topbar = ({ pageTitle, crumbs, isDark, onToggleTheme, locale, onLocaleChange, unread }) => {
+const Topbar = ({ pageTitle, crumbs, isDark, onToggleTheme, locale, onLocaleChange, unread, onOpenSettings, onChangePassword, sidebarCollapsed, onToggleSidebar }) => {
   const [langOpen, setLangOpen] = React.useState(false);
   const [bellOpen, setBellOpen] = React.useState(false);
   const [userOpen, setUserOpen] = React.useState(false);
@@ -40,7 +40,7 @@ const Topbar = ({ pageTitle, crumbs, isDark, onToggleTheme, locale, onLocaleChan
 
   return (
     <header ref={rootRef} className="h-14 shrink-0 px-5 flex items-center gap-3 border-b border-border/70 bg-background/80 backdrop-blur-md sticky top-0 z-20">
-      <button className="p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title="Đóng / mở sidebar">
+      <button onClick={onToggleSidebar} aria-pressed={!!sidebarCollapsed} className="p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title={sidebarCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}>
         <Icon.Menu size={18} />
       </button>
 
@@ -156,7 +156,8 @@ const Topbar = ({ pageTitle, crumbs, isDark, onToggleTheme, locale, onLocaleChan
             </div>
             <div className="py-1 text-[13px]">
               <button className="w-full px-3 py-2 text-left hover:bg-muted transition-colors text-foreground/90">Hồ sơ cá nhân</button>
-              <button className="w-full px-3 py-2 text-left hover:bg-muted transition-colors text-foreground/90">Đổi mật khẩu</button>
+              <button onClick={() => {setUserOpen(false);onChangePassword && onChangePassword();}} className="w-full px-3 py-2 text-left hover:bg-muted transition-colors text-foreground/90">Đổi mật khẩu</button>
+              <button onClick={() => {setUserOpen(false);onOpenSettings && onOpenSettings();}} className="w-full px-3 py-2 text-left hover:bg-muted transition-colors text-foreground/90 flex items-center justify-between gap-2"><span>Cài đặt cá nhân</span><Icon.Sliders size={14} className="text-muted-foreground" /></button>
               <div className="my-1 border-t border-border" />
               <button className="w-full px-3 py-2 text-left hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 transition-colors">Đăng xuất</button>
             </div>

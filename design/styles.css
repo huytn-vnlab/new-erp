@@ -1,0 +1,7 @@
+/* Micro ERP — Design System entry point.
+   Consumers link THIS one file. Keep it as @import lines only. */
+@import "./tokens/fonts.css";
+@import "./tokens/colors.css";
+@import "./tokens/typography.css";
+@import "./tokens/effects.css";
+@import "./tokens/base.css";

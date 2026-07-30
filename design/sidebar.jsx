@@ -46,28 +46,43 @@ const NavGroupLabel = ({ children }) => (
   </div>
 );
 
-const NavLink = ({ item, active, onClick }) => {
+const NavLink = ({ item, active, onClick, collapsed }) => {
   const Ic = Icon[item.icon];
   return (
     <button
       onClick={onClick}
       data-active={active}
+      title={collapsed ? item.label : undefined}
       style={!active ? { color: 'hsl(var(--foreground) / 0.82)' } : undefined}
       className={
-        'nav-item w-full group flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium ' +
+        'nav-item w-full group flex items-center rounded-lg py-2 text-[13.5px] font-medium ' +
+        (collapsed ? 'justify-center px-0 ' : 'gap-3 px-3 ') +
         (active ? 'sidebar-item-active' : '')
       }
     >
       {Ic && <span className="nav-ico"><Ic size={16} /></span>}
-      <span className="flex-1 text-left truncate">{item.label}</span>
+      {!collapsed && <span className="flex-1 text-left truncate">{item.label}</span>}
     </button>
   );
 };
 
-const NavCollapsible = ({ item, activeChild, onChild }) => {
+const NavCollapsible = ({ item, activeChild, onChild, collapsed }) => {
   const [open, setOpen] = React.useState(!!activeChild);
   const Ic = Icon[item.icon];
   React.useEffect(() => { if (activeChild) setOpen(true); }, [activeChild]);
+  if (collapsed) {
+    return (
+      <button
+        onClick={() => onChild(item.children[0])}
+        title={item.label}
+        data-active={!!activeChild}
+        style={!activeChild ? { color: 'hsl(var(--foreground) / 0.82)' } : undefined}
+        className={'nav-item w-full group flex items-center justify-center rounded-lg py-2 ' + (activeChild ? 'sidebar-item-active' : '')}
+      >
+        {Ic && <span className="nav-ico"><Ic size={16} /></span>}
+      </button>
+    );
+  }
   return (
     <div>
       <button
@@ -109,50 +124,58 @@ const NavCollapsible = ({ item, activeChild, onChild }) => {
   );
 };
 
-const Sidebar = ({ activeRoute, onNavigate }) => {
+const Sidebar = ({ activeRoute, onNavigate, collapsed }) => {
   const isActive = (to) => activeRoute === to;
   const activeChildKey = (item) => item.children?.find(c => isActive(c.to))?.key;
   return (
-    <aside className="sidebar-bg w-[260px] shrink-0 h-svh sticky top-0 border-r border-border/60 flex flex-col">
+    <aside
+      className="sidebar-bg shrink-0 h-svh sticky top-0 border-r border-border/60 flex flex-col transition-[width] duration-300"
+      style={{ width: collapsed ? 0 : 260, borderRightWidth: collapsed ? 0 : undefined, overflow: 'hidden' }}
+    >
       {/* Logo */}
-      <div className="h-14 px-5 flex items-center justify-center border-b border-border/60">
-        <img src="assets/logo.png" alt="VNLab" className="h-7 w-auto select-none" draggable="false" />
+      <div className="h-14 px-3 flex items-center justify-center border-b border-border/60 overflow-hidden">
+        {collapsed ? (
+          <span className="h-8 w-8 rounded-lg flex items-center justify-center text-[12px] font-bold tracking-tight text-white font-heading" style={{ background: 'linear-gradient(135deg, hsl(var(--primary-h) var(--primary-s) 58%), hsl(var(--primary-h) var(--primary-s) 38%))' }}>VN</span>
+        ) : (
+          <img src="assets/logo.png" alt="VNLab" className="h-7 w-auto select-none" draggable="false" />
+        )}
       </div>
       {/* Nav scroll */}
       <nav className="flex-1 overflow-y-auto scrollbar-thin px-2 pb-6">
-        <NavGroupLabel>Tổng quan</NavGroupLabel>
+        {collapsed ? <div className="h-3" /> : <NavGroupLabel>Tổng quan</NavGroupLabel>}
         <div className="space-y-0.5">
           {NAV.overview.map(item => (
-            <NavLink key={item.key} item={item} active={isActive(item.to)} onClick={() => onNavigate(item.to)} />
+            <NavLink key={item.key} item={item} collapsed={collapsed} active={isActive(item.to)} onClick={() => onNavigate(item.to)} />
           ))}
         </div>
 
-        <NavGroupLabel>Module</NavGroupLabel>
+        {collapsed ? <div className="my-2 mx-2 border-t border-border/60" /> : <NavGroupLabel>Module</NavGroupLabel>}
         <div className="space-y-0.5">
           {NAV.module.map(item =>
             item.children ? (
               <NavCollapsible
                 key={item.key}
                 item={item}
+                collapsed={collapsed}
                 activeChild={activeChildKey(item)}
                 onChild={c => onNavigate(c.to)}
               />
             ) : (
-              <NavLink key={item.key} item={item} active={isActive(item.to)} onClick={() => onNavigate(item.to)} />
+              <NavLink key={item.key} item={item} collapsed={collapsed} active={isActive(item.to)} onClick={() => onNavigate(item.to)} />
             )
           )}
         </div>
 
-        <NavGroupLabel>Hệ thống</NavGroupLabel>
+        {collapsed ? <div className="my-2 mx-2 border-t border-border/60" /> : <NavGroupLabel>Hệ thống</NavGroupLabel>}
         <div className="space-y-0.5">
           {NAV.system.map(item => (
-            <NavLink key={item.key} item={item} active={isActive(item.to)} onClick={() => onNavigate(item.to)} />
+            <NavLink key={item.key} item={item} collapsed={collapsed} active={isActive(item.to)} onClick={() => onNavigate(item.to)} />
           ))}
         </div>
       </nav>
 
       {/* Footer mini card — version + status */}
-      <div className="mx-3 mb-3 rounded-xl border border-border/70 bg-card/60 backdrop-blur p-3">
+      <div className={'mx-3 mb-3 rounded-xl border border-border/70 bg-card/60 backdrop-blur p-3 ' + (collapsed ? 'hidden' : '')}>
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
           <span className="relative inline-flex h-1.5 w-1.5">
             <span className="absolute inset-0 rounded-full bg-emerald-500 live-dot" />

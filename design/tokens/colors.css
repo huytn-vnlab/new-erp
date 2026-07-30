@@ -1,0 +1,71 @@
+/* Color tokens.
+   Values are HSL COMPONENTS (h s% l%) — consume with hsl(var(--token)) or
+   hsl(var(--token) / <alpha>). This mirrors the app so alpha tints compose cleanly.
+   The primary is built from --primary-h / --primary-s so the whole accent can be
+   re-hued in one place (the app's "accent tweak"). */
+:root {
+  /* Brand accent parts — sky blue */
+  --primary-h: 203;
+  --primary-s: 89%;
+
+  /* Surfaces */
+  --background:         0 0% 100%;
+  --foreground:         226 45% 15%;
+  --card:               0 0% 100%;
+  --card-foreground:    226 45% 15%;
+  --popover:            0 0% 100%;
+  --popover-foreground: 226 45% 15%;
+  --sidebar:            203 50% 97%;
+
+  /* Accent */
+  --primary:            var(--primary-h) var(--primary-s) 57%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Neutrals */
+  --muted:              220 18% 96%;
+  --muted-foreground:   215 16% 47%;
+  --border:             220 14% 91%;
+  --input:              220 14% 91%;
+  --ring:               var(--primary-h) var(--primary-s) 57%;
+
+  /* Primary scale (derived from accent hue/sat) */
+  --primary-50:  var(--primary-h) var(--primary-s) 96%;
+  --primary-100: var(--primary-h) var(--primary-s) 90%;
+  --primary-200: var(--primary-h) var(--primary-s) 82%;
+  --primary-500: var(--primary-h) var(--primary-s) 57%;
+  --primary-600: var(--primary-h) var(--primary-s) 48%;
+  --primary-700: var(--primary-h) var(--primary-s) 40%;
+
+  /* Semantic status colors (base component triplets) */
+  --success:  160 60% 45%;
+  --warning:  35 90% 50%;
+  --danger:   0 75% 55%;
+  --info:     203 89% 50%;
+  --violet:   265 60% 55%;
+
+  /* Badge fills (soft tint bg + saturated fg) */
+  --badge-green-bg: 160 60% 90%;   --badge-green-fg: 160 60% 30%;
+  --badge-red-bg:   0 80% 95%;     --badge-red-fg:   0 70% 45%;
+  --badge-amber-bg: 38 95% 92%;    --badge-amber-fg: 35 90% 38%;
+  --badge-sky-bg:   203 89% 92%;   --badge-sky-fg:   203 89% 35%;
+  --badge-violet-bg:270 70% 95%;   --badge-violet-fg:265 60% 45%;
+}
+
+.dark {
+  --background:         222 47% 7%;
+  --foreground:         213 31% 91%;
+  --card:               222 40% 10%;
+  --card-foreground:    213 31% 91%;
+  --popover:            222 40% 12%;
+  --popover-foreground: 213 31% 91%;
+  --sidebar:            222 47% 6%;
+
+  --primary:            var(--primary-h) var(--primary-s) 63%;
+  --primary-foreground: 222 47% 11%;
+
+  --muted:              222 30% 14%;
+  --muted-foreground:   215 20% 65%;
+  --border:             222 25% 17%;
+  --input:              222 25% 17%;
+  --ring:               var(--primary-h) var(--primary-s) 57%;
+}

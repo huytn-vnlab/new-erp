@@ -16,7 +16,6 @@ import SkeletonRow from '~/components/base/SkeletonRow.vue'
 import EmptyState from '~/components/base/EmptyState.vue'
 import ErrorBanner from '~/components/base/ErrorBanner.vue'
 import { useLeaveStore } from '~/stores/leave'
-import { useMemberStore } from '~/stores/member'
 import type { LeaveRequest } from '~/types'
 import { formatDateDisplay } from '~/utils/date'
 import { LEAVE_TYPE_ID_MAP, BONUS_TYPE_ID_MAP, LEAVE_STATUS_META } from '~/mocks/leave'
@@ -25,7 +24,6 @@ definePageMeta({ layout: 'admin', middleware: 'auth' })
 
 const { t, locale } = useI18n()
 const leaveStore = useLeaveStore()
-const memberStore = useMemberStore()
 const auth = useAuth()
 // /leave/update-leave-request-status and /leave/create-leave-bonus are both
 // CheckAllManager-gated server-side — a regular employee who saw these
@@ -79,7 +77,7 @@ const detail = ref<LeaveEntry | null>(null)
 type InfoRow = { userId: number; name: string; email: string; branch: string; used: number; curr: number; prev: number; active: boolean }
 const addDaysRow = ref<InfoRow | null>(null)
 
-const createForm = ref({ userId: '', type: '', from: '', to: '', fromH: '', fromM: '00', toH: '', toM: '00', reason: '', subtractType: 1, emailTitle: '', emailContent: '' })
+const createForm = ref({ type: '', from: '', to: '', fromH: '', fromM: '00', toH: '', toM: '00', reason: '', subtractType: 1, emailTitle: '', emailContent: '' })
 const createErrors = ref<Record<string, string | boolean>>({})
 const addDaysForm = ref({ type: '', amount: '1', year: '2026', reason: '' })
 const addDaysErrors = ref<Record<string, boolean>>({})
@@ -106,7 +104,6 @@ onMounted(() => {
   leaveStore.fetchLeaveInfo()
   fetchWeekRequests()
   leaveStore.fetchLeaveInfoAll()
-  memberStore.fetchMembers()
 })
 
 watch(tab, (t) => { if (t === 'history') fetchHistory(1) })
@@ -270,7 +267,6 @@ async function submitCreate() {
   const datetimeFrom = buildDateTime(from, createShowTime.value ? createForm.value.fromH : '', createForm.value.fromM)
   const datetimeTo = buildDateTime(to, createShowTime.value ? createForm.value.toH : '', createForm.value.toM)
   const result = await leaveStore.createLeave({
-    user_id: isManager.value && createForm.value.userId ? Number(createForm.value.userId) : undefined,
     leave_request_type: createForm.value.type,
     datetime_leave_from: datetimeFrom,
     datetime_leave_to: datetimeTo,
@@ -282,7 +278,7 @@ async function submitCreate() {
   show(result.ok ? t('hrm.leave.create.submitSuccess') : result.message, result.ok ? 'success' : 'error')
   if (result.ok) {
     tab.value = 'manage'
-    createForm.value = { userId: '', type: '', from: '', to: '', fromH: '', fromM: '00', toH: '', toM: '00', reason: '', subtractType: 1, emailTitle: '', emailContent: '' }
+    createForm.value = { type: '', from: '', to: '', fromH: '', fromM: '00', toH: '', toM: '00', reason: '', subtractType: 1, emailTitle: '', emailContent: '' }
     fetchWeekRequests()
   }
 }
@@ -315,9 +311,6 @@ const tabItems = computed(() => [
   { value: 'history', label: t('hrm.leave.tabs.history') },
 ])
 
-const memberOpts = computed(() =>
-  memberStore.members.map(m => ({ value: String(m.id), label: m.name }))
-)
 const typeOpts = computed(() =>
   Object.keys(leaveStore.leaveInfo?.leave_request_types ?? {}).map(k => ({
     value: k,
@@ -511,7 +504,7 @@ function fetchHistory(page = 1) {
 
     <!-- CREATE -->
     <template v-else-if="tab === 'create'">
-      <div class="card-surface p-6 max-w-[640px] rise">
+      <div class="card-surface p-6 rise">
         <h3 class="font-heading font-bold text-[17px] text-foreground mb-5">{{ t('hrm.leave.create.formTitle') }}</h3>
 
         <!-- Leave balance summary -->
@@ -534,12 +527,6 @@ function fetchHistory(page = 1) {
         </div>
 
         <div class="space-y-4">
-          <!-- Manager/GM only: create on behalf of another employee -->
-          <div v-if="isManager">
-            <label class="block text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">{{ t('hrm.leave.create.onBehalfLabel') }}</label>
-            <Select v-model="createForm.userId" :options="[{ value: '', label: t('hrm.leave.create.onBehalfSelf') }, ...memberOpts]" style="width: 100%" />
-          </div>
-
           <!-- Step 1: Type selection -->
           <div>
             <label class="block text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">{{ t('hrm.leave.create.typeLabel') }} <span class="text-red-400">*</span></label>
@@ -686,7 +673,7 @@ function fetchHistory(page = 1) {
                       <Btn v-if="isManager" variant="outline" size="xs" @click="() => { addDaysRow = r; addDaysForm = { type: '', amount: '1', year: '2026', reason: '' } }">
                         <Plus :size="11" /> {{ t('hrm.leave.info.addDays') }}
                       </Btn>
-                      <Btn variant="primary" size="xs" @click="() => { createForm.userId = isManager ? String(r.userId) : ''; tab = 'create' }">{{ t('hrm.leave.info.createLeave') }}</Btn>
+                      <Btn variant="primary" size="xs" @click="tab = 'create'">{{ t('hrm.leave.info.createLeave') }}</Btn>
                     </div>
                   </td>
                 </tr>

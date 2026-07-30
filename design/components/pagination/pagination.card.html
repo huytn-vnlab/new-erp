@@ -1,0 +1,35 @@
+<!-- @dsCard group="Components" viewport="700x110" name="Pagination" subtitle="Range summary + numbered pager, active page gradient" -->
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<link rel="stylesheet" href="../../styles.css"/>
+<style>
+  body{margin:0;padding:22px;background:hsl(var(--background));font-family:var(--font-sans)}
+  .wrap{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:var(--radius-card)}
+  .pg{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;font-size:12px;color:hsl(var(--muted-foreground))}
+  .pg b{color:hsl(var(--foreground));font-variant-numeric:tabular-nums}
+  .ctrls{display:flex;align-items:center;gap:4px}
+  .c{height:28px;min-width:28px;padding:0 8px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;border:0;background:transparent;color:hsl(var(--foreground));cursor:pointer}
+  .c.on{background:var(--grad-primary);color:#fff;box-shadow:var(--shadow-card)}
+  .c.mut{color:hsl(var(--foreground))}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="pg">
+    <span>Hiển thị <b>1-10</b> trên <b>248</b></span>
+    <div class="ctrls">
+      <button class="c mut">‹ Trước</button>
+      <button class="c on">1</button>
+      <button class="c">2</button>
+      <button class="c">3</button>
+      <button class="c">4</button>
+      <button class="c">5</button>
+      <span style="padding:0 4px;color:hsl(var(--muted-foreground))">…</span>
+      <button class="c mut">Sau ›</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

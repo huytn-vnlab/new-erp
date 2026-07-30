@@ -9,46 +9,17 @@ import ProjectTab from '~/components/home/ProjectTab.vue'
 import { dashboardStats } from '~/mocks/dashboard'
 import type { StatCardData } from '~/types'
 import { useDashboardStore } from '~/stores/dashboard'
-import { useNotificationStore } from '~/stores/notification'
-import { useLeaveStore } from '~/stores/leave'
-import { useProjectStore } from '~/stores/project'
-import { useEvaluationStore } from '~/stores/evaluation'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 const { t } = useI18n()
 const activeTab = ref('company')
 const dashStore = useDashboardStore()
-const notiStore = useNotificationStore()
-const leaveStore = useLeaveStore()
-const projectStore = useProjectStore()
-const evalStore = useEvaluationStore()
 const auth = useAuth()
-
-// Same "submitted" bucketing evaluation.vue uses for its rank distribution —
-// 2 (Đã tạo) and 6 (Đã duyệt) count as done, everything else is still pending.
-const SUBMITTED_STATUSES = [2, 6]
-const currentQuarter = Math.floor(new Date().getMonth() / 3) + 1
-const currentYear = new Date().getFullYear()
-const evalPeriodStats = ref<{ done: number; total: number } | null>(null)
-
-async function loadEvalPeriodStats() {
-  const rows = await evalStore.fetchAllEvaluations({ quarter: currentQuarter, year: currentYear })
-  evalPeriodStats.value = { done: rows.filter(r => SUBMITTED_STATUSES.includes(r.status)).length, total: rows.length }
-}
 
 onMounted(async () => {
   // Ensure user is loaded (layout may not have finished fetchUser yet)
   if (!auth.user.value) await auth.fetchUser()
-  const userId = auth.user.value?.id
-  dashStore.fetchStat()
-  dashStore.fetchReminders()
-  notiStore.fetchNotifications()
-  notiStore.fetchUnreadCount()
-  if (userId) leaveStore.fetchLeaveInfo(userId)
-  projectStore.fetchProjects()
-  if (userId) projectStore.fetchMyProjects(userId)
-  projectStore.fetchAllProjectsForStats()
-  loadEvalPeriodStats()
+  dashStore.fetchHomeSummary()
 })
 
 const homeTabs = computed(() => [
@@ -58,9 +29,8 @@ const homeTabs = computed(() => [
 ])
 
 const statCards = computed<StatCardData[]>(() => {
-  const s = dashStore.stat
+  const s = dashStore.homeSummary
   if (!s) return dashboardStats
-  const evalStats = evalPeriodStats.value
   return [
     {
       label: t('home.stat.totalEmployees'),
@@ -79,26 +49,19 @@ const statCards = computed<StatCardData[]>(() => {
     {
       label: t('home.stat.projects'),
       icon: 'Folder',
-      value: projectStore.pagination.total_row || s.total.projects,
+      value: s.total.projects,
       sublabel: t('home.stat.allProjects'),
-      breakdown: (() => {
-        // ProjectStatus is only 1 (active) or 2 (ended) on the backend — no
-        // third "pending" state exists, unlike the old design mock.
-        const all = projectStore.allProjects
-        if (!all.length) return undefined
-        const active = all.filter(p => p.status === 1).length
-        return [
-          { label: t('home.stat.projectActive'), value: active },
-          { label: t('home.stat.projectEnded'), value: all.length - active },
-        ]
-      })(),
+      breakdown: [
+        { label: t('home.stat.projectActive'), value: s.project_status.active },
+        { label: t('home.stat.projectEnded'), value: s.project_status.ended },
+      ],
     },
     {
       label: t('home.stat.evalPeriod'),
       icon: 'Star',
-      value: `Q${currentQuarter}/${String(currentYear).slice(2)}`,
-      sublabel: evalStats ? t('home.stat.evalSubmitted', { done: evalStats.done, total: evalStats.total }) : '',
-      breakdown: evalStats ? [{ label: t('home.stat.evalDone'), value: `${evalStats.done} / ${evalStats.total}` }] : undefined,
+      value: `Q${s.eval_period.quarter}/${String(s.eval_period.year).slice(2)}`,
+      sublabel: t('home.stat.evalSubmitted', { done: s.eval_period.done, total: s.eval_period.total }),
+      breakdown: [{ label: t('home.stat.evalDone'), value: `${s.eval_period.done} / ${s.eval_period.total}` }],
     },
   ]
 })

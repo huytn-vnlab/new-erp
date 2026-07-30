@@ -1,0 +1,28 @@
+<!-- @dsCard group="Components" viewport="700x120" name="Input" subtitle="Icon text field · focus = accent border, no ring" -->
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<link rel="stylesheet" href="../../styles.css"/>
+<style>
+  body{margin:0;padding:22px;background:hsl(var(--background))}
+  .row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .fld{display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:var(--radius-sm);background:hsl(var(--muted) / .3);border:1px solid hsl(var(--border))}
+  .fld.focus{border-color:hsl(var(--primary) / .6)}
+  .fld input{flex:1;min-width:0;background:transparent;border:0;outline:none;font-size:13px;font-family:var(--font-sans);color:hsl(var(--foreground))}
+  .fld svg{width:14px;height:14px;color:hsl(var(--muted-foreground))}
+</style>
+</head>
+<body>
+<div class="row">
+  <div class="fld" style="width:240px">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input placeholder="Tìm nhân viên…"/>
+  </div>
+  <div class="fld focus" style="width:240px">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22 6 12 13 2 6"/></svg>
+    <input value="an.nguyen@vnlab.vn"/>
+  </div>
+</div>
+</body>
+</html>

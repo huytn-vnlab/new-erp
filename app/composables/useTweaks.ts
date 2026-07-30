@@ -1,8 +1,8 @@
 import { useStorage } from '@vueuse/core'
 
-export type Tweaks = { theme: 'light' | 'dark'; accent: string; density: 'comfortable' | 'compact' }
+export type Tweaks = { theme: 'light' | 'dark'; accent: string }
 
-const DEFAULTS: Tweaks = { theme: 'light', accent: 'sky', density: 'comfortable' }
+const DEFAULTS: Tweaks = { theme: 'light', accent: 'sky' }
 
 export function useTweaks() {
   const tweaks = useStorage<Tweaks>('erp-tweaks', { ...DEFAULTS })

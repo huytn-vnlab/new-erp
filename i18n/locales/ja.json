@@ -357,6 +357,24 @@
     "title": "通知",
     "markAll": "すべて既読にする",
     "empty": "新しい通知はありません",
+    "subtitle": "未読{unread}件 · 全{total}件",
+    "tabAll": "すべて",
+    "tabUnread": "未読",
+    "tabUnreadCount": "未読 · {n}",
+    "category": {
+      "leave": "休暇",
+      "overtime": "残業",
+      "project": "プロジェクト",
+      "asset": "資産",
+      "recruitment": "採用",
+      "timekeeping": "勤怠",
+      "system": "システム"
+    },
+    "group": {
+      "today": "今日",
+      "week": "今週",
+      "older": "それ以前"
+    },
     "content": {
       "createLeave": "が休暇申請を作成しました",
       "createOT": "が残業申請を作成しました",
@@ -441,6 +459,17 @@
       "evalDetail": "詳細を見る →",
       "rankCol": "ランク",
       "trendCol": "傾向"
+    },
+    "calendar": {
+      "title": "リマインダーカレンダー",
+      "subtitle": "{year}年{month}月の{n}件のイベント",
+      "typeBirthday": "誕生日",
+      "typeAnniversary": "入社記念日",
+      "typeContract": "契約更新",
+      "more": "件",
+      "dayDetail": "日の詳細",
+      "noEventsOnDay": "この日にはリマインダーがありません。",
+      "today": "今日"
     },
     "personal": {
       "info": "個人情報",
@@ -833,8 +862,6 @@
         "balanceUsed": "使用済み",
         "balancePrevYear": "前年度",
         "daysUnit": "日",
-        "onBehalfLabel": "申請対象",
-        "onBehalfSelf": "自分",
         "typeLabel": "休暇種別",
         "typePlaceholder": "— 休暇種別を選択 —",
         "typeRequired": "休暇種別を選択してください",

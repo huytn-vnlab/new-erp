@@ -1,0 +1,109 @@
+/* Base element defaults + signature helper classes.
+   These reproduce the app's global look so any consumer linking styles.css
+   inherits the same typography, surfaces, and accents. */
+
+html {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+}
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: var(--font-heading);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
+}
+.font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+}
+.font-mono { font-family: var(--font-mono); }
+
+/* Uppercase micro-label used above titles / on stat cards */
+.eyebrow {
+  font-size: var(--text-eyebrow);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  font-weight: var(--weight-semi);
+  color: hsl(var(--muted-foreground));
+}
+
+/* Section card title */
+.section-title {
+  font-family: var(--font-heading);
+  font-size: 13.5px;
+  font-weight: var(--weight-semi);
+  letter-spacing: var(--tracking-snug);
+  color: hsl(var(--foreground));
+}
+
+/* ── Signature surfaces ─────────────────────────────────────── */
+
+/* Card chrome — 14px radius, hairline border, whisper shadow */
+.card-surface {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-card);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+}
+.card-surface.interactive { transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.card-surface.interactive:hover {
+  border-color: hsl(var(--primary-h) var(--primary-s) 57% / 0.45);
+  box-shadow: 0 6px 18px -8px hsl(var(--primary-h) var(--primary-s) 50% / 0.22);
+}
+
+/* Main canvas — faint accent mesh + dot grid so the page isn't a flat slab */
+.app-canvas {
+  background-color: hsl(var(--background));
+  background-image:
+    radial-gradient(900px 500px at 100% 0%, hsl(var(--primary-h) var(--primary-s) 60% / 0.13), transparent 70%),
+    radial-gradient(700px 500px at 0% 100%, hsl(var(--primary-h) 50% 55% / 0.09), transparent 70%),
+    radial-gradient(hsl(var(--primary-h) var(--primary-s) 60% / 0.055) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 22px 22px;
+}
+.dark .app-canvas {
+  background-image:
+    radial-gradient(900px 500px at 100% 0%, hsl(var(--primary-h) var(--primary-s) 60% / 0.12), transparent 70%),
+    radial-gradient(700px 500px at 0% 100%, hsl(var(--primary-h) 55% 45% / 0.09), transparent 70%),
+    radial-gradient(hsl(var(--foreground) / 0.03) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 22px 22px;
+}
+
+/* Sidebar gradient — accent bloom top & bottom, near-white middle */
+.sidebar-bg {
+  background:
+    radial-gradient(130% 35% at 50% 0%, hsl(var(--primary-h) 65% 82%) 0%, transparent 100%),
+    radial-gradient(130% 35% at 50% 100%, hsl(var(--primary-h) 60% 84%) 0%, transparent 100%),
+    hsl(var(--primary-h) 30% 97%);
+}
+.dark .sidebar-bg {
+  background:
+    radial-gradient(120% 55% at 50% 0%, hsl(var(--primary-h) 45% 14%) 0%, transparent 65%),
+    radial-gradient(90% 40% at 50% 100%, hsl(var(--primary-h) 50% 12%) 0%, transparent 70%),
+    linear-gradient(180deg, hsl(222 47% 8%) 0%, hsl(222 50% 6%) 60%, hsl(222 52% 5%) 100%);
+}
+
+/* ── Motion ─────────────────────────────────────────────────── */
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes selectIn { from { opacity: 0; transform: translateY(-4px) scaleY(.96); } to { opacity: 1; transform: translateY(0) scaleY(1); } }
+@keyframes pulseDot {
+  0%,100% { box-shadow: 0 0 0 0 hsl(var(--primary-h) var(--primary-s) 57% / 0.55); }
+  50% { box-shadow: 0 0 0 6px hsl(var(--primary-h) var(--primary-s) 57% / 0); }
+}
+.rise { animation: rise .5s var(--ease-out) both; }
+.live-dot { animation: pulseDot 1.8s ease-out infinite; }
+
+/* ── Scrollbar ──────────────────────────────────────────────── */
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent; }
+.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(var(--muted-foreground) / 0.3); border-radius: 9999px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+
+/* ── Selection ──────────────────────────────────────────────── */
+::selection { background: hsl(var(--primary-h) var(--primary-s) 57% / 0.25); }

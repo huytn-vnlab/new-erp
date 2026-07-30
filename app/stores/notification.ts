@@ -24,6 +24,7 @@ export const useNotificationStore = defineStore('notification', () => {
   const notifications = ref<NotificationItem[]>([])
   const unreadCount = ref(0)
   const loading = ref(false)
+  const pagination = ref({ current_page: 1, total_row: 0, row_per_page: 10 })
 
   // cf.NotificationStatusUnread=1 / Read=2 / Seen=3 on the backend.
   const isUnread = computed(() => (n: NotificationItem) => n.status === 1)
@@ -40,6 +41,7 @@ export const useNotificationStore = defineStore('notification', () => {
       })
       if (res.status === 1 && res.data) {
         notifications.value = res.data.notifications ?? []
+        if (res.data.pagination) pagination.value = res.data.pagination
       }
     } catch { /* ignore */ }
     finally { loading.value = false }
@@ -96,5 +98,5 @@ export const useNotificationStore = defineStore('notification', () => {
     } catch { /* ignore */ }
   }
 
-  return { notifications, unreadCount, loading, isUnread, fetchNotifications, fetchUnreadCount, markAllRead, markOneRead }
+  return { notifications, unreadCount, loading, pagination, isUnread, fetchNotifications, fetchUnreadCount, markAllRead, markOneRead }
 })

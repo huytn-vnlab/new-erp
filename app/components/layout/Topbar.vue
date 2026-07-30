@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { onClickOutside } from '@vueuse/core'
-import { Menu, Bell, Moon, Sun, ChevronDown, Check } from 'lucide-vue-next'
+import { Menu, Bell, Moon, Sun, ChevronDown, Check, Sliders } from 'lucide-vue-next'
 import Breadcrumb from './Breadcrumb.vue'
+import PersonalSettingsModal from './PersonalSettingsModal.vue'
+import ChangePasswordModal from './ChangePasswordModal.vue'
 import { useNotificationStore, type NotificationItem } from '~/stores/notification'
 import { mapNotificationRoute } from '~/utils/notificationRoute'
 
@@ -36,7 +38,12 @@ function goProfile() {
 
 function goChangePassword() {
   userOpen.value = false
-  navigateTo('/organization/ResetPassword')
+  pwOpen.value = true
+}
+
+function goSettings() {
+  userOpen.value = false
+  settingsOpen.value = true
 }
 
 function openBell() {
@@ -56,6 +63,7 @@ async function openNotification(n: NotificationItem) {
 
 const root = ref<HTMLElement>()
 const langOpen = ref(false), bellOpen = ref(false), userOpen = ref(false)
+const settingsOpen = ref(false), pwOpen = ref(false)
 const closeAll = () => { langOpen.value = bellOpen.value = userOpen.value = false }
 onClickOutside(root, closeAll)
 </script>
@@ -154,10 +162,18 @@ onClickOutside(root, closeAll)
         </div>
         <div class="py-1 text-[13px]">
           <button class="w-full px-3 py-2 text-left hover:bg-muted transition-colors text-foreground/90" @click="goProfile">Hồ sơ cá nhân</button>
+          <button class="w-full px-3 py-2 text-left hover:bg-muted transition-colors text-foreground/90" @click="goChangePassword">Đổi mật khẩu</button>
+          <button class="w-full px-3 py-2 text-left hover:bg-muted transition-colors text-foreground/90 flex items-center justify-between gap-2" @click="goSettings">
+            <span>Cài đặt cá nhân</span>
+            <Sliders :size="14" class="text-muted-foreground" />
+          </button>
           <div class="my-1 border-t border-border" />
           <button class="w-full px-3 py-2 text-left hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 transition-colors" @click="handleLogout">Đăng xuất</button>
         </div>
       </div>
     </div>
+
+    <PersonalSettingsModal v-model="settingsOpen" @open-change-password="pwOpen = true" />
+    <ChangePasswordModal v-model="pwOpen" />
   </header>
 </template>

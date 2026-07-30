@@ -1,0 +1,25 @@
+<!-- @dsCard group="Components" viewport="700x120" name="Checkbox" subtitle="Accent-fill checkbox — unchecked · checked · indeterminate" -->
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<link rel="stylesheet" href="../../styles.css"/>
+<style>
+  body{margin:0;padding:22px;background:hsl(var(--background))}
+  .row{display:flex;gap:26px;align-items:center;font-family:var(--font-sans);font-size:13px;color:hsl(var(--foreground))}
+  .lbl{display:inline-flex;align-items:center;gap:8px}
+  .bx{position:relative;width:14px;height:14px;border-radius:var(--radius-xs);border:1.5px solid hsl(var(--border));background:hsl(var(--card))}
+  .bx.on{border-color:hsl(var(--primary));background:hsl(var(--primary))}
+  .tick{position:absolute;left:4px;top:1px;width:4px;height:8px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg)}
+  .ind{position:absolute;left:2.5px;top:5.5px;width:7px;height:2px;background:#fff;border-radius:1px}
+</style>
+</head>
+<body>
+<div class="row">
+  <span class="lbl"><span class="bx"></span> Chưa chọn</span>
+  <span class="lbl"><span class="bx on"><span class="tick"></span></span> Đã chọn</span>
+  <span class="lbl"><span class="bx on"><span class="ind"></span></span> Một phần</span>
+  <span class="lbl" style="opacity:.5"><span class="bx"></span> Vô hiệu</span>
+</div>
+</body>
+</html>

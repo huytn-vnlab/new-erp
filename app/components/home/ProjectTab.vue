@@ -11,6 +11,11 @@ const { t } = useI18n()
 const projectStore = useProjectStore()
 const dashStore = useDashboardStore()
 
+onMounted(() => {
+  dashStore.fetchStat()
+  projectStore.fetchProjects()
+})
+
 const projects = computed(() => projectStore.projects)
 
 const PROJ_STATUS: Record<string, { dot: string; cls: string }> = {

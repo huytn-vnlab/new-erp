@@ -13,9 +13,9 @@
   · Noto Sans JP        — CJK fallback (hiragana / katakana / kanji)
   · Lora                — display serif (italic pull-quotes, eval headings); VN-compatible
   · Noto Serif JP       — CJK fallback for serif contexts
-  · JetBrains Mono      — monospace (code, numbers)
+  · JetBrains Mono      — monospace (IDs, codes, timestamps)
 -->
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Noto+Sans+JP:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Noto+Serif+JP:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
 <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
 <script>
@@ -24,9 +24,9 @@
     theme: {
       extend: {
         fontFamily: {
-          sans:    ['"Plus Jakarta Sans"', '"Noto Sans JP"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-          heading: ['"Plus Jakarta Sans"', '"Noto Sans JP"', 'ui-sans-serif', 'sans-serif'],
-          display: ['Lora', '"Noto Serif JP"', 'Georgia', 'ui-serif', 'serif'],
+          sans:    ['"Be Vietnam Pro"', '"Noto Sans JP"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          heading: ['"Plus Jakarta Sans"', '"Be Vietnam Pro"', '"Noto Sans JP"', 'ui-sans-serif', 'sans-serif'],
+          display: ['"Plus Jakarta Sans"', '"Be Vietnam Pro"', '"Noto Sans JP"', 'ui-sans-serif', 'sans-serif'],
           mono:    ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
         },
         colors: {
@@ -106,15 +106,16 @@
   }
 
   /*
-    Base sans: Plus Jakarta Sans covers Latin + Vietnamese diacritics.
-    Noto Sans JP kicks in automatically for any CJK codepoint (hiragana,
-    katakana, kanji) — no manual switching needed.
+    Base UI sans: Be Vietnam Pro — drawn for Vietnamese, so diacritic stacks
+    (ế, ộ, ữ) stay legible at 12–13px table sizes. Noto Sans JP kicks in
+    automatically for any CJK codepoint — no manual switching needed.
   */
   html {
-    font-family: 'Plus Jakarta Sans', 'Noto Sans JP', system-ui, sans-serif;
+    font-family: 'Be Vietnam Pro', 'Noto Sans JP', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+    font-variant-numeric: tabular-nums;
   }
   body { background-color: hsl(var(--background)); color: hsl(var(--foreground)); }
 
@@ -141,35 +142,44 @@
   }
 
   /*
-    Headings: same typeface, heavier weight.
-    Plus Jakarta Sans 700–800 looks polished for both Latin and JP.
-    letter-spacing tighter to look crisper at large sizes.
+    Headings: Plus Jakarta Sans — wider counters and a squarer bowl than the
+    body face, so titles read as a distinct level without a size jump.
   */
   h1, h2, h3, h4, h5, h6, .font-heading {
-    font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Be Vietnam Pro', 'Noto Sans JP', sans-serif;
     font-weight: 700;
     letter-spacing: -0.02em;
   }
 
   /*
-    Display / pull-quote serif:
-    Lora is beautiful for italic accents and has full Vietnamese glyph coverage.
-    Noto Serif JP handles any Japanese text in serif contexts.
+    Display: big KPI numbers and hero figures — heaviest weight, tightest
+    tracking, tabular so digits never jitter as values update.
   */
   .font-display {
-    font-family: 'Lora', 'Noto Serif JP', Georgia, serif;
-    font-optical-sizing: auto;
-    letter-spacing: -0.01em;
+    font-family: 'Plus Jakarta Sans', 'Be Vietnam Pro', 'Noto Sans JP', sans-serif;
+    font-weight: 800;
+  }
+  .font-display i, .font-display em, .font-display .italic, .font-display [class*="italic"] {
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
   }
 
   /* Section card titles — regular weight, slightly tighter tracking */
   .section-title {
-    font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Be Vietnam Pro', 'Noto Sans JP', sans-serif;
     font-size: 13.5px;
     font-weight: 600;
     letter-spacing: -0.01em;
     color: hsl(var(--foreground));
   }
+
+  /* Data surfaces: lining tabular figures + slightly open tracking so
+     small-size Vietnamese text and long numbers stay scannable. */
+  table, .tabular-nums, input, select, textarea { font-variant-numeric: tabular-nums; }
+  th { font-weight: 600; letter-spacing: 0.01em; }
+  td { letter-spacing: 0; }
+  code, kbd, .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-feature-settings: 'zero' 1; }
 
   /* Highlighted table header — soft primary tint + primary-colored text */
   .thead-primary {
@@ -245,7 +255,7 @@
     padding: 12px 0;
     color: hsl(var(--muted-foreground));
     font-weight: 600;
-    font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Be Vietnam Pro', 'Noto Sans JP', sans-serif;
     font-size: 14px;
     letter-spacing: -0.01em;
     cursor: pointer;

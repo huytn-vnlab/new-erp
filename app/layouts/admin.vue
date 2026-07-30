@@ -2,7 +2,6 @@
 import { computed, onMounted } from 'vue'
 import Sidebar from '~/components/layout/Sidebar.vue'
 import Topbar from '~/components/layout/Topbar.vue'
-import TweaksPanel from '~/components/layout/TweaksPanel.vue'
 import ToastHost from '~/components/base/ToastHost.vue'
 import { useNotificationStore } from '~/stores/notification'
 import { formatDateTimeDisplay } from '~/utils/date'
@@ -39,7 +38,6 @@ const crumbs = computed(() => {
   return CRUMBS.value[route.path] ?? [{ label: t('nav.home') }]
 })
 const isDark = computed(() => tweaks.value.theme === 'dark')
-const density = computed(() => tweaks.value.density)
 
 function navigate(to: string) { navigateTo(to) }
 function toggleTheme() { setTweak('theme', isDark.value ? 'light' : 'dark') }
@@ -54,8 +52,8 @@ function toggleTheme() { setTweak('theme', isDark.value ? 'light' : 'dark') }
         @toggle-theme="toggleTheme" @update:locale="(l) => setLocale(l as any)"
       />
       <main class="app-canvas flex-1 overflow-y-auto scrollbar-thin">
-        <div :key="route.path" :class="'mx-auto max-w-[1400px] flex flex-col min-h-full ' + (density === 'compact' ? 'p-4' : 'p-6')">
-          <div :class="'flex-1 ' + (density === 'compact' ? 'space-y-4' : 'space-y-6')">
+        <div :key="route.path" class="mx-auto max-w-[1400px] flex flex-col min-h-full p-4">
+          <div class="flex-1 space-y-4">
             <slot />
           </div>
           <footer class="pt-4 pb-2 flex items-center justify-between text-[11px] text-muted-foreground border-t border-border/70 mt-10">
@@ -65,7 +63,6 @@ function toggleTheme() { setTweak('theme', isDark.value ? 'light' : 'dark') }
         </div>
       </main>
     </div>
-    <TweaksPanel />
     <ToastHost />
   </div>
 </template>

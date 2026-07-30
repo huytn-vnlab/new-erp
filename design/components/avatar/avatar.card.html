@@ -1,0 +1,18 @@
+<!-- @dsCard group="Components" viewport="700x120" name="Avatar" subtitle="Deterministic initials avatar, rounded-square, sizes 28–48" -->
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<link rel="stylesheet" href="../../styles.css"/>
+<style>body{margin:0;padding:22px;background:hsl(var(--background))}.row{display:flex;gap:14px;align-items:center}.av{display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;border-radius:var(--radius-md)}</style>
+</head>
+<body>
+<div class="row" id="r"></div>
+<script>
+const names=[['NA','Nguyễn Văn An'],['TM','Trần Thị Mai'],['LH','Lê Quang Huy'],['PD','Phạm Đức'],['HT','Hoàng Thành'],['VK','Vũ Khánh']];
+const sizes=[48,40,36,32,28,28];
+const r=document.getElementById('r');
+names.forEach((n,i)=>{let h=0;for(const c of n[1])h=(h*31+c.charCodeAt(0))%360;const s=sizes[i];const e=document.createElement('span');e.className='av';e.style.width=s+'px';e.style.height=s+'px';e.style.fontSize=(s*0.36)+'px';e.style.background=`linear-gradient(135deg,hsl(${h} 70% 62%),hsl(${(h+30)%360} 65% 42%))`;e.textContent=n[0];r.appendChild(e);});
+</script>
+</body>
+</html>

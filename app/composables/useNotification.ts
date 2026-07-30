@@ -16,6 +16,19 @@ export function useNotification() {
     return key ? t(key) : content
   }
 
+  // Calendar-day bucketing (not a rolling 24h window) — an item from
+  // "yesterday" still lands in the "this week" bucket, matching the design's
+  // Hôm nay / Tuần này / Cũ hơn grouping in the notification center modal.
+  function groupKey(dateStr: string): 'today' | 'week' | 'older' {
+    const created = new Date(dateStr)
+    const now = new Date()
+    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+    const diffDays = Math.floor((startOfDay(now) - startOfDay(created)) / 86400000)
+    if (diffDays <= 0) return 'today'
+    if (diffDays < 7) return 'week'
+    return 'older'
+  }
+
   function timeSince(dateStr: string): string {
     const ms = Date.now() - new Date(dateStr).getTime()
     const s = Math.floor(ms / 1000)
@@ -31,5 +44,5 @@ export function useNotification() {
     return t('notification.time.monthsAgo', { n: Math.floor(s / 2592000) })
   }
 
-  return { translateContent, timeSince }
+  return { translateContent, timeSince, groupKey }
 }

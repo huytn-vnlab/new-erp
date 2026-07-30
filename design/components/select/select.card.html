@@ -1,0 +1,35 @@
+<!-- @dsCard group="Components" viewport="700x260" name="Select" subtitle="Custom dropdown — closed trigger + open floating menu" -->
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<link rel="stylesheet" href="../../styles.css"/>
+<style>
+  body{margin:0;padding:22px;background:hsl(var(--background));font-family:var(--font-sans)}
+  .row{display:flex;gap:16px;align-items:flex-start}
+  .trg{position:relative;width:200px;height:36px;padding:0 30px 0 12px;display:flex;align-items:center;border-radius:var(--radius-sm);background:hsl(var(--muted) / .3);border:1px solid hsl(var(--border));font-size:13px;color:hsl(var(--foreground))}
+  .trg.open{border-color:hsl(var(--primary) / .6);box-shadow:0 0 0 2px hsl(var(--primary) / .15)}
+  .chev{position:absolute;right:10px;color:hsl(var(--muted-foreground));font-size:10px}
+  .menu{width:200px;border-radius:var(--radius-lg);border:1px solid hsl(var(--border));background:hsl(var(--popover));box-shadow:var(--shadow-popover);overflow:hidden;padding:4px 0;margin-top:4px}
+  .opt{display:flex;align-items:center;gap:8px;padding:8px 10px 8px 12px;font-size:13px;color:hsl(var(--foreground) / .85)}
+  .opt.sel{color:hsl(var(--primary));font-weight:500;background:hsl(var(--primary) / .1)}
+  .opt .f{flex:1}
+</style>
+</head>
+<body>
+<div class="row">
+  <div>
+    <div class="trg">Tất cả phòng ban<span class="chev">▾</span></div>
+  </div>
+  <div>
+    <div class="trg open">Kỹ thuật<span class="chev" style="transform:rotate(180deg)">▾</span></div>
+    <div class="menu">
+      <div class="opt"><span class="f">Tất cả phòng ban</span></div>
+      <div class="opt sel"><span class="f">Kỹ thuật</span><span>✓</span></div>
+      <div class="opt"><span class="f">Nhân sự</span></div>
+      <div class="opt"><span class="f">Kinh doanh</span></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

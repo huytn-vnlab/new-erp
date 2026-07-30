@@ -1,0 +1,28 @@
+/* Typography tokens. */
+:root {
+  --font-sans:    'Plus Jakarta Sans', 'Noto Sans JP', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: 'Plus Jakarta Sans', 'Noto Sans JP', ui-sans-serif, sans-serif;
+  --font-display: 'Lora', 'Noto Serif JP', Georgia, ui-serif, serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+
+  /* Type scale (px) — dashboard-dense UI */
+  --text-eyebrow: 11px;   /* uppercase 0.14em labels */
+  --text-xs:      11.5px;
+  --text-sm:      12.5px;
+  --text-base:    13px;   /* default body / controls */
+  --text-md:      13.5px; /* nav + section titles */
+  --text-lg:      14px;
+  --text-title:   26px;   /* page H1 */
+  --text-stat:    34px;   /* stat card numbers */
+  --text-display: 36px;   /* banner serif greeting */
+
+  --tracking-tight:   -0.02em;  /* headings */
+  --tracking-snug:    -0.01em;  /* section titles, tabs */
+  --tracking-eyebrow: 0.14em;   /* uppercase labels */
+
+  --weight-normal:  400;
+  --weight-medium:  500;
+  --weight-semi:    600;
+  --weight-bold:    700;
+  --weight-black:   800;
+}

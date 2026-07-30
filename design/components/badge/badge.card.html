@@ -1,0 +1,25 @@
+<!-- @dsCard group="Components" viewport="700x120" name="Badge" subtitle="Status pills — 7 hues, optional leading dot" -->
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<link rel="stylesheet" href="../../styles.css"/>
+<style>
+  body{margin:0;padding:22px;background:hsl(var(--background))}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .b{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:var(--radius-full);font-size:11px;font-weight:500;font-family:var(--font-mono)}
+  .dot{width:6px;height:6px;border-radius:50%}
+</style>
+</head>
+<body>
+<div class="row">
+  <span class="b" style="background:hsl(var(--badge-green-bg));color:hsl(var(--badge-green-fg))"><span class="dot" style="background:hsl(var(--success))"></span>Đang làm việc</span>
+  <span class="b" style="background:hsl(var(--badge-amber-bg));color:hsl(var(--badge-amber-fg))"><span class="dot" style="background:hsl(var(--warning))"></span>Chờ duyệt</span>
+  <span class="b" style="background:hsl(var(--badge-red-bg));color:hsl(var(--badge-red-fg))"><span class="dot" style="background:hsl(var(--danger))"></span>Hết hạn</span>
+  <span class="b" style="background:hsl(var(--badge-sky-bg));color:hsl(var(--badge-sky-fg))"><span class="dot" style="background:hsl(var(--info))"></span>Thử việc</span>
+  <span class="b" style="background:hsl(var(--primary-h) var(--primary-s) 57% / .10);color:hsl(var(--primary))">Chính thức</span>
+  <span class="b" style="background:hsl(var(--badge-violet-bg));color:hsl(var(--badge-violet-fg))">Thực tập</span>
+  <span class="b" style="background:hsl(var(--muted));color:hsl(var(--muted-foreground))">HĐ-2024-118</span>
+</div>
+</body>
+</html>

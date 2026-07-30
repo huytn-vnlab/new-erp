@@ -357,6 +357,24 @@
     "title": "Notifications",
     "markAll": "Mark all as read",
     "empty": "No new notifications",
+    "subtitle": "{unread} unread · {total} total",
+    "tabAll": "All",
+    "tabUnread": "Unread",
+    "tabUnreadCount": "Unread · {n}",
+    "category": {
+      "leave": "Leave",
+      "overtime": "Overtime",
+      "project": "Project",
+      "asset": "Asset",
+      "recruitment": "Recruitment",
+      "timekeeping": "Timekeeping",
+      "system": "System"
+    },
+    "group": {
+      "today": "Today",
+      "week": "This week",
+      "older": "Older"
+    },
     "content": {
       "createLeave": "just created a leave request",
       "createOT": "just created an overtime request",
@@ -441,6 +459,17 @@
       "evalDetail": "View details →",
       "rankCol": "Rank",
       "trendCol": "Trend"
+    },
+    "calendar": {
+      "title": "Reminder calendar",
+      "subtitle": "{n} events in {month}/{year}",
+      "typeBirthday": "Birthday",
+      "typeAnniversary": "Work anniversary",
+      "typeContract": "Contract renewal",
+      "more": "more",
+      "dayDetail": "Day detail",
+      "noEventsOnDay": "No reminders on this day.",
+      "today": "Today"
     },
     "personal": {
       "info": "Personal Information",
@@ -833,8 +862,6 @@
         "balanceUsed": "Used",
         "balancePrevYear": "Last year",
         "daysUnit": "days",
-        "onBehalfLabel": "Create request for",
-        "onBehalfSelf": "Myself",
         "typeLabel": "Leave type",
         "typePlaceholder": "— Select leave type —",
         "typeRequired": "Please select a leave type",

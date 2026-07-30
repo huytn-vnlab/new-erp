@@ -12,8 +12,252 @@ const SectionCard = ({ title, action, children, className = '', delay = 0 }) =>
   </div>;
 
 
+/* ---------- Reminder calendar (modal) ---------- */
+const CAL_TYPE_META = {
+  birthday: { label: 'Sinh nhật', bg: 'hsl(38 92% 95%)', fg: 'hsl(35 90% 42%)', dot: '#f59e0b' },
+  anniversary: { label: 'Kỷ niệm vào công ty', bg: 'hsl(203 89% 95%)', fg: 'hsl(203 89% 42%)', dot: '#38bdf8' },
+  contract: { label: 'Gia hạn hợp đồng', bg: 'hsl(160 60% 94%)', fg: 'hsl(160 60% 34%)', dot: '#10b981' } };
+
+const CAL_EVENTS = [
+{ d: '2026-05-05', type: 'birthday', text: 'Sinh nhật Nguyễn Hải Đăng', sub: 'Hà Nội · 29 tuổi' },
+{ d: '2026-05-12', type: 'anniversary', text: 'Vào công ty Vũ Thị Lan', sub: '2 năm tại VNLab' },
+{ d: '2026-05-18', type: 'contract', text: 'Gia hạn hợp đồng Ngô Bảo Châu', sub: 'HĐ xác định thời hạn · 12 tháng' },
+{ d: '2026-05-21', type: 'birthday', text: 'Sinh nhật Trần Thị Mai', sub: 'Đà Nẵng · 25 tuổi' },
+{ d: '2026-05-21', type: 'anniversary', text: 'Vào công ty Bùi Anh Khoa', sub: '5 năm tại VNLab' },
+{ d: '2026-05-24', type: 'anniversary', text: 'Vào công ty Hoàng Đức Thành', sub: '3 năm tại VNLab' },
+{ d: '2026-05-25', type: 'birthday', text: 'Sinh nhật Đỗ Minh Tuấn', sub: 'Hà Nội · 31 tuổi' },
+{ d: '2026-05-29', type: 'contract', text: 'Gia hạn hợp đồng Trịnh Văn Nam', sub: 'HĐ thử việc → chính thức' },
+{ d: '2026-06-03', type: 'contract', text: 'Gia hạn hợp đồng Lê Quang Huy', sub: 'HĐ xác định thời hạn · 24 tháng' },
+{ d: '2026-06-08', type: 'birthday', text: 'Sinh nhật Phan Thị Ngọc', sub: 'Đà Nẵng · 27 tuổi' },
+{ d: '2026-06-15', type: 'anniversary', text: 'Vào công ty Lý Thanh Sơn', sub: '1 năm tại VNLab' },
+{ d: '2026-06-19', type: 'contract', text: 'Gia hạn hợp đồng Phạm Thu Hà', sub: 'HĐ không xác định thời hạn' }];
+
+const CAL_TODAY = '2026-05-21';
+
+const ReminderCalendar = ({ onClose }) => {
+  const [month, setMonth] = React.useState(4); // 0-indexed, May 2026
+  const [selected, setSelected] = React.useState(CAL_TODAY);
+  const [filters, setFilters] = React.useState({ birthday: true, anniversary: true, contract: true });
+  const year = 2026;
+
+  const toggle = (k) => setFilters((f) => ({ ...f, [k]: !f[k] }));
+  const visible = CAL_EVENTS.filter((e) => filters[e.type]);
+  const key = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const lead = (new Date(year, month, 1).getDay() + 6) % 7;
+  const prevDays = new Date(year, month, 0).getDate();
+  const cells = [];
+  for (let i = lead - 1; i >= 0; i--) cells.push({ day: prevDays - i, out: true, k: key(year, month - 1, prevDays - i) });
+  for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, out: false, k: key(year, month, d) });
+  while (cells.length % 7 !== 0) cells.push({ day: cells.length - lead - daysInMonth + 1, out: true, k: 'next-' + cells.length });
+
+  const selectedEvents = visible.filter((e) => e.d === selected);
+  const monthEvents = visible.filter((e) => e.d.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`));
+  const fmtLong = (k) => {
+    const [y, m, d] = k.split('-').map(Number);
+    const wd = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'][new Date(y, m - 1, d).getDay()];
+    return `${wd}, ${d}/${m}/${y}`;
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative card-surface w-full max-w-4xl rise overflow-hidden">
+        <div className="px-5 py-4 border-b border-border/70 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="h-10 w-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary"><Icon.Calendar size={18} /></span>
+            <div>
+              <h3 className="text-[17px] font-bold font-heading leading-tight">Lịch nhắc nhở</h3>
+              <p className="text-[12px] text-muted-foreground">{monthEvents.length} sự kiện trong tháng {month + 1}/{year}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 rounded-lg border border-border/70 p-0.5">
+              <button onClick={() => setMonth((m) => Math.max(0, m - 1))} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground"><span className="block rotate-180"><Icon.ChevronRight size={15} /></span></button>
+              <span className="text-[12.5px] font-semibold px-2 tabular-nums">Tháng {month + 1}/{year}</span>
+              <button onClick={() => setMonth((m) => Math.min(11, m + 1))} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground"><Icon.ChevronRight size={15} /></button>
+            </div>
+            <button onClick={onClose} className="p-2 rounded-md hover:bg-muted text-muted-foreground"><Icon.X size={16} /></button>
+          </div>
+        </div>
+
+        <div className="px-5 py-2.5 border-b border-border/70 flex items-center gap-2 flex-wrap">
+          {Object.entries(CAL_TYPE_META).map(([k, m]) =>
+          <button
+            key={k}
+            onClick={() => toggle(k)}
+            className={'flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full border transition-colors ' + (
+            filters[k] ? 'border-transparent font-medium' : 'border-border/70 text-muted-foreground')}
+            style={filters[k] ? { background: m.bg, color: m.fg } : undefined}>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: filters[k] ? m.dot : 'currentColor' }} />
+              {m.label}
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px]">
+          <div className="p-5">
+            <div className="grid grid-cols-7 gap-1 mb-1">
+              {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((d) =>
+              <div key={d} className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground text-center py-1">{d}</div>
+              )}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {cells.map((c, i) => {
+                const evs = c.out ? [] : visible.filter((e) => e.d === c.k);
+                const isToday = c.k === CAL_TODAY;
+                const isSel = !c.out && c.k === selected;
+                return (
+                  <button
+                    key={i}
+                    disabled={c.out}
+                    onClick={() => setSelected(c.k)}
+                    className={'h-[74px] rounded-lg border text-left p-1.5 flex flex-col gap-1 transition-colors ' + (
+                    c.out ? 'border-transparent text-muted-foreground/35' :
+                    isSel ? 'border-primary bg-primary/[0.06]' : 'border-border/60 hover:bg-muted/40')}>
+                    <span className={'text-[12px] tabular-nums font-medium h-5 w-5 flex items-center justify-center rounded-full ' + (isToday ? 'bg-primary text-primary-foreground font-bold' : '')}>{c.day}</span>
+                    <span className="flex flex-col gap-0.5 min-h-0">
+                      {evs.slice(0, 2).map((e, j) =>
+                      <span key={j} className="text-[10.5px] leading-[13px] truncate rounded px-1 py-[1px]" style={{ background: CAL_TYPE_META[e.type].bg, color: CAL_TYPE_META[e.type].fg }}>{e.text.replace(/^(Sinh nhật|Vào công ty|Gia hạn hợp đồng) /, '')}</span>
+                      )}
+                      {evs.length > 2 && <span className="text-[10px] text-muted-foreground px-1">+{evs.length - 2} khác</span>}
+                    </span>
+                  </button>);
+
+              })}
+            </div>
+          </div>
+
+          <div className="border-t lg:border-t-0 lg:border-l border-border/70 p-5 flex flex-col">
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">Chi tiết ngày</p>
+            <p className="text-[14px] font-bold font-heading mt-0.5">{fmtLong(selected)}</p>
+            <div className="mt-4 space-y-2.5 flex-1">
+              {selectedEvents.length === 0 &&
+              <p className="text-[12.5px] text-muted-foreground italic">Không có nhắc nhở nào trong ngày này.</p>
+              }
+              {selectedEvents.map((e, i) => {
+                const m = CAL_TYPE_META[e.type];
+                const Ic = e.type === 'birthday' ? Icon.Cake : e.type === 'anniversary' ? Icon.Gift : Icon.Briefcase;
+                return (
+                  <div key={i} className="flex items-start gap-2.5">
+                    <span className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: m.bg, color: m.fg }}><Ic size={14} /></span>
+                    <div className="min-w-0">
+                      <p className="text-[12.5px] font-medium leading-snug">{e.text}</p>
+                      <p className="text-[11.5px] text-muted-foreground">{e.sub}</p>
+                    </div>
+                  </div>);
+
+              })}
+            </div>
+            <div className="pt-4 mt-4 border-t border-border/70 flex items-center gap-2">
+              <Btn variant="outline" size="sm" onClick={() => {setMonth(4);setSelected(CAL_TODAY);}}>Hôm nay</Btn>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>);
+
+};
+
+/* ---------- Notification centre (modal) ---------- */
+const NOTIF_META = {
+  leave: { label: 'Nghỉ phép', icon: 'Calendar', bg: 'hsl(38 92% 95%)', fg: 'hsl(35 90% 42%)' },
+  eval: { label: 'Đánh giá', icon: 'Star', bg: 'hsl(262 70% 95%)', fg: 'hsl(262 60% 48%)' },
+  project: { label: 'Dự án', icon: 'Folder', bg: 'hsl(203 89% 95%)', fg: 'hsl(203 89% 42%)' },
+  overtime: { label: 'Tăng ca', icon: 'Timer', bg: 'hsl(160 60% 94%)', fg: 'hsl(160 60% 34%)' },
+  system: { label: 'Hệ thống', icon: 'Bell', bg: 'hsl(226 30% 94%)', fg: 'hsl(226 30% 40%)' } };
+
+const ALL_NOTIFS = [
+{ id: 1, cat: 'leave', t: 'Đơn nghỉ phép của Trần Thị Mai đang chờ duyệt', s: 'HR Admin', a: '5 phút', u: true, group: 'Hôm nay', act: 'Duyệt' },
+{ id: 2, cat: 'eval', t: 'Báo cáo đánh giá Q1/2026 đã sẵn sàng', s: 'Evaluation Bot', a: '2 giờ', u: true, group: 'Hôm nay', act: 'Xem báo cáo' },
+{ id: 3, cat: 'project', t: 'Bạn được thêm vào dự án “Cổng thanh toán XYZ”', s: 'Hoàng Đức Thành', a: '4 giờ', u: true, group: 'Hôm nay' },
+{ id: 4, cat: 'overtime', t: 'Đơn tăng ca của Vũ Thị Lan đã được duyệt', s: 'PM Hà Nội', a: 'Hôm qua', u: false, group: 'Tuần này' },
+{ id: 5, cat: 'system', t: 'Lương tháng 4 đã được phát', s: 'Finance', a: '3 ngày', u: false, group: 'Tuần này' },
+{ id: 6, cat: 'leave', t: 'Đơn nghỉ không lương của Ngô Bảo Châu bị từ chối', s: 'HR Admin', a: '3 ngày', u: false, group: 'Tuần này' },
+{ id: 7, cat: 'project', t: 'Dự án “ERP nội bộ” chuyển sang giai đoạn UAT', s: 'PM Đà Nẵng', a: '4 ngày', u: false, group: 'Tuần này' },
+{ id: 8, cat: 'overtime', t: '5 đơn tăng ca tháng 4 chờ bạn xác nhận', s: 'Timekeeping Bot', a: '1 tuần', u: false, group: 'Cũ hơn', act: 'Xác nhận' },
+{ id: 9, cat: 'system', t: 'Chính sách nghỉ phép 2026 đã được cập nhật', s: 'HR Admin', a: '2 tuần', u: false, group: 'Cũ hơn' },
+{ id: 10, cat: 'eval', t: 'Kỳ đánh giá Q2/2026 sẽ mở từ 01/07', s: 'Evaluation Bot', a: '2 tuần', u: false, group: 'Cũ hơn' }];
+
+const NotificationCenter = ({ onClose }) => {
+  const [tab, setTab] = React.useState('all');
+  const [read, setRead] = React.useState([]);
+  const isUnread = (n) => n.u && !read.includes(n.id);
+  const unreadCount = ALL_NOTIFS.filter(isUnread).length;
+  const list = ALL_NOTIFS.filter((n) => tab === 'all' ? true : tab === 'unread' ? isUnread(n) : n.cat === tab);
+  const groups = ['Hôm nay', 'Tuần này', 'Cũ hơn'].map((g) => [g, list.filter((n) => n.group === g)]).filter(([, v]) => v.length);
+  const tabs = [['all', 'Tất cả'], ['unread', `Chưa đọc${unreadCount ? ' · ' + unreadCount : ''}`], ...Object.entries(NOTIF_META).map(([k, m]) => [k, m.label])];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative card-surface w-full max-w-2xl rise overflow-hidden flex flex-col" style={{ maxHeight: '80vh' }}>
+        <div className="px-5 py-4 border-b border-border/70 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="h-10 w-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary"><Icon.Bell size={18} /></span>
+            <div>
+              <h3 className="text-[17px] font-bold font-heading leading-tight">Thông báo</h3>
+              <p className="text-[12px] text-muted-foreground">{unreadCount} chưa đọc · {ALL_NOTIFS.length} tổng cộng</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Btn variant="ghost" size="sm" onClick={() => setRead(ALL_NOTIFS.map((n) => n.id))}>Đánh dấu đã đọc</Btn>
+            <button onClick={onClose} className="p-2 rounded-md hover:bg-muted text-muted-foreground"><Icon.X size={16} /></button>
+          </div>
+        </div>
+
+        <div className="px-5 py-2.5 border-b border-border/70 flex items-center gap-1.5 flex-wrap">
+          {tabs.map(([k, label]) =>
+          <button
+            key={k}
+            onClick={() => setTab(k)}
+            className={'text-[12px] px-2.5 py-1 rounded-full border transition-colors ' + (
+            tab === k ? 'border-transparent bg-primary text-primary-foreground font-medium' : 'border-border/70 text-muted-foreground hover:bg-muted/50')}>
+              {label}
+            </button>
+          )}
+        </div>
+
+        <div className="overflow-y-auto flex-1">
+          {groups.length === 0 &&
+          <p className="p-8 text-center text-[12.5px] text-muted-foreground italic">Không có thông báo nào.</p>
+          }
+          {groups.map(([g, items]) =>
+          <div key={g}>
+              <p className="px-5 py-1.5 text-[10.5px] uppercase tracking-wider font-semibold text-muted-foreground bg-muted/40 sticky top-0">{g}</p>
+              <ul className="divide-y divide-border/70">
+                {items.map((n) => {
+                const m = NOTIF_META[n.cat];
+                const Ic = Icon[m.icon] || Icon.Bell;
+                return (
+                  <li
+                    key={n.id}
+                    onClick={() => setRead((r) => r.includes(n.id) ? r : [...r, n.id])}
+                    className="px-5 py-3 flex items-start gap-3 cursor-pointer hover:bg-muted/30 transition-colors">
+                      <span className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: m.bg, color: m.fg }}><Ic size={15} /></span>
+                      <div className="min-w-0 flex-1">
+                        <p className={'text-[13px] leading-snug ' + (isUnread(n) ? 'font-medium text-foreground' : 'text-muted-foreground')}>{n.t}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{m.label} · {n.s} · {n.a} trước</p>
+                      </div>
+                      {n.act && <Btn variant="outline" size="sm">{n.act}</Btn>}
+                      {isUnread(n) && <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
+                    </li>);
+
+              })}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>);
+
+};
+
 /* ---------- TAB 1: COMPANY ---------- */
 const CompanyTab = () => {
+  const [calOpen, setCalOpen] = React.useState(false);
+  const [notifOpen, setNotifOpen] = React.useState(false);
   const reminders = [
   { id: 1, type: 'birthday', text: 'Sinh nhật Trần Thị Mai', sub: 'Đà Nẵng · 25 tuổi', date: 'Hôm nay', color: 'amber' },
   { id: 2, type: 'birthday', text: 'Sinh nhật Đỗ Minh Tuấn', sub: 'Hà Nội · 31 tuổi', date: 'Thứ Hai', color: 'amber' },
@@ -80,12 +324,14 @@ const CompanyTab = () => {
 
   return (
     <div className="space-y-6">
+      {calOpen && <ReminderCalendar onClose={() => setCalOpen(false)} />}
+      {notifOpen && <NotificationCenter onClose={() => setNotifOpen(false)} />}
       {/* Row 1: reminders + notifications */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SectionCard
           delay={50}
           title="Nhắc nhở sắp tới"
-          action={<button className="text-[12px] text-primary hover:underline">Xem lịch →</button>}>
+          action={<button onClick={() => setCalOpen(true)} className="text-[12px] text-primary hover:underline">Xem lịch →</button>}>
           
           <ul className="space-y-3">
             {reminders.map((r) => {
@@ -120,7 +366,7 @@ const CompanyTab = () => {
               <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
                 <span className="h-1.5 w-1.5 rounded-full bg-primary live-dot" /> 3 mới
               </span>
-              <button className="text-[12px] text-primary hover:underline">Tất cả →</button>
+              <button onClick={() => setNotifOpen(true)} className="text-[12px] text-primary hover:underline">Tất cả →</button>
             </div>
           }>
           

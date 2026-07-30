@@ -16,6 +16,15 @@ const leaveStore = useLeaveStore()
 const projectStore = useProjectStore()
 const dashStore = useDashboardStore()
 
+onMounted(() => {
+  dashStore.fetchStat()
+  const userId = auth.user.value?.id
+  if (userId) {
+    leaveStore.fetchLeaveInfo(userId)
+    projectStore.fetchMyProjects(userId)
+  }
+})
+
 // ── Personal info ──────────────────────────────────────────────────────────
 const user = computed(() => auth.user.value)
 const fullName = computed(() => user.value?.name ?? user.value?.email ?? 'Người dùng')

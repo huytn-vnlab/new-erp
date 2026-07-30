@@ -5,9 +5,9 @@ import { useTweaks } from '../app/composables/useTweaks'
 describe('useTweaks', () => {
   beforeEach(() => localStorage.clear())
 
-  it('mặc định light / sky / comfortable', () => {
+  it('mặc định light / sky', () => {
     const { tweaks } = useTweaks()
-    expect(tweaks.value).toEqual({ theme: 'light', accent: 'sky', density: 'comfortable' })
+    expect(tweaks.value).toEqual({ theme: 'light', accent: 'sky' })
   })
 
   it('setTweak cập nhật và persist vào localStorage', async () => {
