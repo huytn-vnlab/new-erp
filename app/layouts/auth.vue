@@ -1,49 +1,38 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden login-bg">
-    <!-- Decorative X marks -->
-    <span class="deco-x" style="top:14%;left:2%">✕</span>
-    <span class="deco-x" style="top:10%;right:2%">✕</span>
-    <span class="deco-x" style="top:50%;left:2%">✕</span>
-    <span class="deco-x" style="bottom:30%;right:2%">✕</span>
-    <span class="deco-x" style="bottom:12%;left:36%;font-size:1.2rem">✕</span>
+  <div class="auth-root">
+    <div class="hero-grid" />
+    <div class="hero-orb hero-orb-1" />
+    <div class="hero-orb hero-orb-2" />
 
-    <!-- White diagonal shape — top left -->
-    <div class="absolute -top-20 -left-20 w-72 h-72 bg-white opacity-10 rounded-3xl" style="transform:rotate(45deg)" />
-    <!-- White diagonal shape — bottom right -->
-    <div class="absolute -bottom-20 -right-10 w-56 h-56 bg-white opacity-10 rounded-3xl" style="transform:rotate(15deg)" />
-
-    <!-- Dot grid — bottom right -->
-    <div class="absolute bottom-5 right-5 opacity-25" style="display:grid;grid-template-columns:repeat(10,1fr);gap:5px">
-      <div v-for="n in 80" :key="n" class="w-1 h-1 rounded-full bg-white" />
-    </div>
-
-    <!-- Card -->
-    <div class="w-full max-w-md relative z-10">
-      <div class="bg-white rounded-lg shadow-2xl p-8">
-        <slot />
+    <header class="relative z-10">
+      <div class="mx-auto max-w-[1160px] px-6 h-[66px] flex items-center justify-between">
+        <NuxtLink to="/" class="shrink-0"><img :src="logoHeader" alt="Micro ERP" class="h-[30px] w-auto"></NuxtLink>
+        <div class="flex items-center gap-1">
+          <span class="hidden sm:inline-flex items-center gap-1.5 text-[12.5px] text-white/70 px-3"><Globe :size="14" />VI</span>
+          <a href="#" class="text-[13px] font-medium text-white/85 hover:bg-white/10 rounded-lg px-3 py-1.5 transition-colors">Hỗ trợ</a>
+        </div>
       </div>
-    </div>
+    </header>
 
-    <!-- Footer -->
-    <div class="absolute bottom-4 left-0 w-full text-center text-white text-xs opacity-70 z-10">
-      @2026 MicroERP - All rights reserved
-    </div>
+    <main class="relative z-10 flex-1 flex items-center justify-center px-6 py-10">
+      <slot />
+    </main>
+
+    <footer class="relative z-10 px-6 py-4">
+      <div class="mx-auto max-w-[1160px] flex items-center justify-between text-[11.5px] text-white/45">
+        <span>© {{ currentYear }} GMO-Z.com VietNamLab JSC</span>
+        <span class="flex items-center gap-4">
+          <a href="#" class="text-inherit hover:text-white">Điều khoản</a>
+          <a href="#" class="text-inherit hover:text-white">Bảo mật</a>
+        </span>
+      </div>
+    </footer>
   </div>
 </template>
 
 <script setup lang="ts">
-// Auth layout — no nav/sidebar, used for login, register, forgot-password
-</script>
+import { Globe } from 'lucide-vue-next'
+import logoHeader from '~/assets/images/logoheader.png'
 
-<style scoped>
-.login-bg {
-  background: linear-gradient(145deg, #4fc3f7 0%, #1e88e5 40%, #1565c0 100%);
-}
-.deco-x {
-  position: absolute;
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 1.8rem;
-  pointer-events: none;
-  user-select: none;
-}
-</style>
+const currentYear = new Date().getFullYear()
+</script>

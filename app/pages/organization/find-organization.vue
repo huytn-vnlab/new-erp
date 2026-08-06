@@ -1,59 +1,47 @@
 <template>
-  <div>
-    <!-- Logo -->
-    <div class="mb-5 text-center">
-      <img :src="logoBlue" alt="Micro ERP" class="h-14 w-auto mx-auto" >
-    </div>
-
-    <!-- Title + subtitle -->
-    <h2 class="text-2xl font-bold text-gray-800 mb-1">{{ $t('org.findTitle') }}</h2>
-    <p class="text-sm text-gray-400 mb-5">{{ $t('org.findSubtitle') }}</p>
-
-    <AppAlert v-if="errorMsg" variant="error" dismissible class="mb-4">{{ errorMsg }}</AppAlert>
-
+  <AuthCard :step="0" eyebrow="Bước 1 / 2" :title="$t('org.findTitle')" :sub="$t('org.findSubtitle')">
     <Form v-slot="{ isSubmitting }" :validation-schema="schema" @submit="onSubmit">
-      <div class="mb-4">
-        <Field v-slot="{ field, errors }" name="keyword" :validate-on-blur="false" :validate-on-input="false">
-          <input
-            v-bind="field"
-            :placeholder="$t('org.findPlaceholder')"
-            :class="['login-input', errors[0] && 'border-red-400']"
-          >
-          <p v-if="errors[0]" class="text-red-500 text-xs mt-1">{{ errors[0] }}</p>
-        </Field>
+      <Field v-slot="{ field, errors }" name="keyword" :validate-on-blur="false" :validate-on-input="false">
+        <AuthField
+          :model-value="field.value"
+          :label="$t('org.code')"
+          :icon="Tag"
+          :placeholder="$t('org.findPlaceholder')"
+          :error="errors[0] || errorMsg"
+          auto-focus
+          @update:model-value="field.onChange"
+        />
+      </Field>
+      <div class="mt-3.5">
+        <AuthButton type="submit" :disabled="isSubmitting">{{ isSubmitting ? $t('common.loading') : $t('org.findBtn') }}</AuthButton>
       </div>
-
-      <button
-        type="submit"
-        :disabled="isSubmitting"
-        class="w-full py-2.5 bg-blue-500 text-white font-semibold text-sm rounded hover:bg-blue-600 transition disabled:opacity-60"
-      >
-        {{ isSubmitting ? $t('common.loading') : $t('org.findBtn') }}
-      </button>
     </Form>
 
-    <!-- Search result -->
-    <div v-if="foundOrg" class="mt-5 p-4 border border-blue-200 rounded-lg bg-blue-50 flex items-center justify-between">
-      <div>
-        <p class="font-semibold text-gray-900">{{ foundOrg.name }}</p>
-        <p class="text-sm text-gray-500 mt-0.5">{{ $t('org.code') }}: {{ foundOrg.tag }}</p>
-      </div>
-      <button
-        class="px-4 py-2 bg-blue-500 text-white text-sm font-semibold rounded hover:bg-blue-600 transition"
-        @click="goToLogin"
-      >
-        {{ $t('auth.login') }}
+    <div v-if="foundOrg" class="mt-6">
+      <p class="text-[11.5px] font-semibold uppercase tracking-[0.14em] text-slate-400">Kết quả</p>
+      <button class="mt-2.5 w-full flex items-center gap-3 rounded-xl border border-border bg-white p-3 text-left hover:border-primary transition-colors" @click="goToLogin">
+        <span class="h-10 w-10 rounded-xl flex items-center justify-center font-heading font-bold text-white shrink-0 text-[13.5px]" style="background: hsl(203 89% 48%)">
+          {{ initials(foundOrg.name) }}
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-[13.5px] font-semibold text-ink truncate">{{ foundOrg.name }}</span>
+          <span class="block text-[11.5px] text-slate-500 font-mono">{{ $t('org.code') }}: {{ foundOrg.tag }}</span>
+        </span>
+        <ArrowRight :size="16" class="text-slate-400" />
       </button>
     </div>
-  </div>
+
+    <template #footer>
+      <span>{{ $t('auth.noOrg') }} <NuxtLink to="/organization/registration" class="text-[#1565c0] font-semibold hover:underline underline-offset-2">{{ $t('auth.registerNow') }}</NuxtLink></span>
+    </template>
+  </AuthCard>
 </template>
 
 <script setup lang="ts">
 import { Form, Field } from 'vee-validate'
 import * as z from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
-import logoBlue from '~/assets/images/logoblue.png'
-import AppAlert from '~/components/AppAlert.vue'
+import { Tag, ArrowRight } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'auth',
@@ -71,6 +59,10 @@ const { t }    = useI18n()
 const schema = toTypedSchema(z.object({
   keyword: z.string({ required_error: t('org.findMin') }).min(2, t('org.findMin')),
 }))
+
+function initials(name: string) {
+  return name.split(' ').slice(0, 2).map((w) => w[0]).join('')
+}
 
 async function onSubmit(values: Record<string, unknown>) {
   errorMsg.value = ''
@@ -102,26 +94,10 @@ function goToLogin() {
       query: {
         ...route.query,
         org: foundOrg.value.tag,
-        org_id: foundOrg.value.id
+        org_id: foundOrg.value.id,
+        org_name: foundOrg.value.name,
       }
     })
   }
 }
 </script>
-
-<style scoped>
-.login-input {
-  display: block;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  outline: none;
-  transition: border-color 0.15s;
-}
-.login-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-</style>

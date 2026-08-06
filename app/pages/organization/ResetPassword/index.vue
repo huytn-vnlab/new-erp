@@ -1,57 +1,67 @@
 <template>
-  <div>
-    <h2 class="text-xl font-semibold text-gray-800 mb-2 text-center">Đặt lại mật khẩu</h2>
-    <p class="text-sm text-gray-500 text-center mb-6">Nhập mật khẩu mới cho tài khoản của bạn.</p>
-
-    <AppAlert v-if="successMsg" variant="success" class="mb-4">{{ successMsg }}</AppAlert>
-    <AppAlert v-if="errorMsg" variant="error" dismissible class="mb-4">{{ errorMsg }}</AppAlert>
-
-    <Form v-if="!successMsg" v-slot="{ isSubmitting }" :validation-schema="schema" @submit="onSubmit">
-      <div class="space-y-4 mb-5">
-        <Field v-slot="{ field, errors }" name="new_password">
-          <AppInput
-            v-bind="field"
-            type="password"
-            label="Mật khẩu mới"
-            autocomplete="new-password"
-            :error="errors[0]"
-            required
-          />
-        </Field>
-        <Field v-slot="{ field, errors }" name="confirm_password">
-          <AppInput
-            v-bind="field"
-            type="password"
-            label="Xác nhận mật khẩu"
-            autocomplete="new-password"
-            :error="errors[0]"
-            required
-          />
-        </Field>
-      </div>
-      <AppButton type="submit" class="w-full" :loading="isSubmitting">Đặt lại mật khẩu</AppButton>
-    </Form>
-
-    <div class="mt-6 text-center">
-      <NuxtLink to="/user/login" class="text-sm text-primary-600 hover:underline">← Quay lại đăng nhập</NuxtLink>
+  <AuthCard
+    eyebrow="Khôi phục"
+    :title="successMsg ? 'Đặt lại mật khẩu thành công' : 'Đặt lại mật khẩu'"
+    :sub="successMsg ? successMsg : 'Mật khẩu mới sẽ áp dụng cho tất cả thiết bị của bạn.'"
+    back-label="Về đăng nhập"
+    back-to="/user/login"
+  >
+    <div v-if="successMsg" class="-mt-2">
+      <span class="h-14 w-14 rounded-2xl flex items-center justify-center" style="background: hsl(152 60% 95%); color: hsl(155 60% 32%)">
+        <Check :size="26" />
+      </span>
+      <div class="mt-6"><AuthButton @click="router.push('/user/login')">Đăng nhập ngay</AuthButton></div>
     </div>
-  </div>
+
+    <template v-else>
+      <div v-if="errorMsg" class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[12.5px] text-rose-700">{{ errorMsg }}</div>
+
+      <Form v-slot="{ isSubmitting }" :validation-schema="schema" @submit="onSubmit">
+        <div class="space-y-3.5">
+          <Field v-slot="{ field, errors }" name="new_password">
+            <AuthField
+              :model-value="field.value"
+              label="Mật khẩu mới"
+              :icon="Lock"
+              type="password"
+              :error="errors[0]"
+              auto-focus
+              @update:model-value="field.onChange"
+            />
+            <AuthPasswordRules :password="field.value || ''" with-bar />
+          </Field>
+          <Field v-slot="{ field, errors }" name="confirm_password">
+            <AuthField
+              :model-value="field.value"
+              label="Xác nhận mật khẩu"
+              :icon="Lock"
+              type="password"
+              :error="errors[0]"
+              @update:model-value="field.onChange"
+            />
+          </Field>
+          <AuthButton type="submit" :disabled="isSubmitting">Cập nhật mật khẩu</AuthButton>
+        </div>
+      </Form>
+    </template>
+  </AuthCard>
 </template>
 
 <script setup lang="ts">
 import { Form, Field } from 'vee-validate'
 import * as z from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
+import { Lock, Check } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'auth', middleware: 'guest' })
 useHead({ title: 'Đặt lại mật khẩu — Micro ERP' })
 
 const route    = useRoute()
+const router   = useRouter()
 const { post } = useApi()
 const successMsg = ref('')
 const errorMsg   = ref('')
 
-// token may come from query param ?token=xxx
 const token = computed(() => route.query.token as string ?? '')
 
 const schema = toTypedSchema(z.object({
@@ -69,7 +79,7 @@ async function onSubmit(values: any) {
       token:        token.value,
       new_password: values.new_password,
     })
-    successMsg.value = 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập với mật khẩu mới.'
+    successMsg.value = 'Bạn có thể đăng nhập với mật khẩu mới.'
   } catch (err: any) {
     const status = err?.response?.status ?? err?.status
     if (status === 400 || status === 404) {

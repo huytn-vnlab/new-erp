@@ -1,65 +1,62 @@
 <template>
-  <div>
-    <!-- Logo -->
-    <div class="mb-6 text-center">
-      <img :src="logoBlue" alt="Micro ERP" class="h-14 w-auto mx-auto" >
+  <AuthCard
+    wide
+    eyebrow="Thành viên mới"
+    :title="successMsg ? 'Đã gửi yêu cầu' : 'Yêu cầu tham gia tổ chức'"
+    :sub="successMsg ? successMsg : 'Quản trị viên của tổ chức sẽ nhận yêu cầu và cấp tài khoản cho bạn.'"
+    back-label="Về đăng nhập"
+    :back-to="{ path: '/user/login', query: route.query }"
+  >
+    <div v-if="successMsg" class="-mt-2">
+      <span class="h-14 w-14 rounded-2xl flex items-center justify-center" style="background: hsl(203 89% 95%); color: hsl(203 89% 40%)">
+        <Mail :size="26" />
+      </span>
     </div>
 
-    <!-- Success -->
-    <div v-if="successMsg" class="mb-4 rounded bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
-      {{ successMsg }}
-    </div>
+    <template v-else>
+      <div v-if="errorMsg" class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[12.5px] text-rose-700">{{ errorMsg }}</div>
 
-    <!-- Error -->
-    <div v-if="errorMsg" class="mb-4 rounded bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-      {{ errorMsg }}
-    </div>
+      <Form v-slot="{ isSubmitting }" :validation-schema="schema" @submit="onSubmit">
+        <div class="space-y-3.5">
+          <Field v-slot="{ field, errors }" name="email">
+            <AuthField
+              :model-value="field.value"
+              label="Email công ty"
+              :icon="Mail"
+              type="email"
+              placeholder="ten@congty.vn"
+              :error="errors[0]"
+              auto-focus
+              @update:model-value="field.onChange"
+            />
+          </Field>
 
-    <Form v-if="!successMsg" v-slot="{ isSubmitting }" :validation-schema="schema" @submit="onSubmit">
-      <!-- Email -->
-      <div class="mb-3">
-        <Field v-slot="{ field, errors }" name="email">
-          <input
-            v-bind="field"
-            type="email"
-            placeholder="Email"
-            autocomplete="email"
-            :class="['login-input', errors[0] && 'border-red-400']"
-          >
-          <p v-if="errors[0]" class="text-red-500 text-xs mt-1">{{ errors[0] }}</p>
-        </Field>
-      </div>
+          <label class="block">
+            <span class="text-[12.5px] font-semibold text-ink">Lời nhắn cho quản trị viên</span>
+            <Field v-slot="{ field, errors }" name="message">
+              <textarea
+                :value="field.value"
+                rows="3"
+                placeholder="Tôi là nhân viên mới phòng Kỹ thuật, bắt đầu từ 01/08."
+                class="mt-1.5 w-full rounded-[10px] border border-border bg-white px-3.5 py-2.5 text-[13.5px] text-ink placeholder:text-slate-400 outline-none focus:border-[#109cf1] focus:shadow-[0_0_0_3px_rgba(16,156,241,0.16)] transition-shadow resize-none"
+                @input="field.onChange(($event.target as HTMLTextAreaElement).value)"
+              />
+              <span v-if="errors[0]" class="mt-1.5 block text-[11.5px] text-rose-600">{{ errors[0] }}</span>
+            </Field>
+          </label>
 
-      <!-- Message -->
-      <div class="mb-4">
-        <Field v-slot="{ field, errors }" name="message">
-          <textarea
-            v-bind="field"
-            placeholder="Lời nhắn"
-            rows="6"
-            :class="['login-input resize-none', errors[0] && 'border-red-400']"
-          />
-          <p v-if="errors[0]" class="text-red-500 text-xs mt-1">{{ errors[0] }}</p>
-        </Field>
-      </div>
-
-      <!-- Submit -->
-      <button
-        type="submit"
-        :disabled="isSubmitting"
-        class="w-full py-2.5 bg-blue-500 text-white font-semibold text-sm rounded hover:bg-blue-600 transition disabled:opacity-60"
-      >
-        {{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu' }}
-      </button>
-    </Form>
-  </div>
+          <AuthButton type="submit" :disabled="isSubmitting">{{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu' }}</AuthButton>
+        </div>
+      </Form>
+    </template>
+  </AuthCard>
 </template>
 
 <script setup lang="ts">
 import { Form, Field } from 'vee-validate'
 import * as z from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
-import logoBlue from '~/assets/images/logoblue.png'
+import { Mail } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'auth',
@@ -68,15 +65,14 @@ definePageMeta({
 
 useHead({ title: 'Gửi yêu cầu — Micro ERP' })
 
-const route      = useRuntimeConfig()
-const routeQuery = useRoute()
-const config     = useRuntimeConfig()
-const apiBase    = config.public.apiBase
+const route      = useRoute()
+const config      = useRuntimeConfig()
+const apiBase     = config.public.apiBase
 
 const successMsg = ref('')
 const errorMsg   = ref('')
 
-const organizationID = computed(() => Number(routeQuery.query.org_id) || 0)
+const organizationID = computed(() => Number(route.query.org_id) || 0)
 
 const schema = toTypedSchema(
   z.object({
@@ -101,7 +97,7 @@ async function onSubmit(values: Record<string, unknown>) {
       }
     )
     if (res.status === 1) {
-      successMsg.value = res.message || 'Yêu cầu đã được gửi thành công!'
+      successMsg.value = res.message || 'Quản trị viên sẽ phê duyệt trong vòng 1 ngày làm việc.'
     } else {
       errorMsg.value = res.message || 'Có lỗi xảy ra, vui lòng thử lại.'
     }
@@ -110,20 +106,3 @@ async function onSubmit(values: Record<string, unknown>) {
   }
 }
 </script>
-
-<style scoped>
-.login-input {
-  display: block;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  outline: none;
-  transition: border-color 0.15s;
-}
-.login-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-</style>

@@ -1,81 +1,56 @@
 <template>
-  <div>
-    <h2 class="text-xl font-semibold text-gray-800 mb-2 text-center">Tạo tổ chức mới</h2>
-    <p class="text-sm text-gray-500 text-center mb-6">Điền thông tin để khởi tạo không gian làm việc của bạn.</p>
-
-    <AppAlert v-if="errorMsg" variant="error" dismissible class="mb-4">{{ errorMsg }}</AppAlert>
+  <AuthCard
+    wide
+    eyebrow="Bước cuối"
+    title="Tạo tổ chức mới"
+    sub="Thông tin này xuất hiện trên hợp đồng, phiếu lương và email hệ thống."
+  >
+    <div v-if="errorMsg" class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[12.5px] text-rose-700">{{ errorMsg }}</div>
 
     <Form v-slot="{ isSubmitting }" :validation-schema="schema" @submit="onSubmit">
-      <div class="space-y-4 mb-5">
+      <div class="grid sm:grid-cols-2 gap-3.5">
         <Field v-slot="{ field, errors }" name="name">
-          <AppInput
-            v-bind="field"
-            label="Tên tổ chức"
-            placeholder="Công ty TNHH ABC"
-            :error="errors[0]"
-            required
-          />
+          <AuthField :model-value="field.value" label="Tên tổ chức" :icon="Building2" placeholder="Công ty TNHH ABC" :error="errors[0]" auto-focus @update:model-value="field.onChange" />
         </Field>
 
         <Field v-slot="{ field, errors }" name="code">
-          <AppInput
-            v-bind="field"
-            label="Mã tổ chức"
-            placeholder="abc-company"
-            :error="errors[0]"
-            required
-          />
+          <AuthField :model-value="field.value" label="Mã tổ chức" :icon="Tag" placeholder="abc-company" hint="Dùng để đăng nhập." :error="errors[0]" @update:model-value="field.onChange" />
         </Field>
 
-        <Field v-slot="{ field, errors }" name="email">
-          <AppInput
-            v-bind="field"
-            type="email"
-            label="Email quản trị viên"
-            placeholder="admin@company.com"
-            :error="errors[0]"
-            required
-          />
-        </Field>
+        <div class="sm:col-span-2">
+          <Field v-slot="{ field, errors }" name="full_name">
+            <AuthField :model-value="field.value" label="Họ tên quản trị viên" :icon="User" placeholder="Nguyễn Văn A" :error="errors[0]" @update:model-value="field.onChange" />
+          </Field>
+        </div>
 
-        <Field v-slot="{ field, errors }" name="password">
-          <AppInput
-            v-bind="field"
-            type="password"
-            label="Mật khẩu"
-            autocomplete="new-password"
-            :error="errors[0]"
-            required
-          />
-        </Field>
+        <div class="sm:col-span-2">
+          <Field v-slot="{ field, errors }" name="email">
+            <AuthField :model-value="field.value" label="Email quản trị viên" :icon="Mail" type="email" placeholder="admin@company.com" :error="errors[0]" @update:model-value="field.onChange" />
+          </Field>
+        </div>
 
-        <Field v-slot="{ field, errors }" name="full_name">
-          <AppInput
-            v-bind="field"
-            label="Tên quản trị viên"
-            placeholder="Nguyễn Văn A"
-            :error="errors[0]"
-            required
-          />
-        </Field>
+        <div class="sm:col-span-2">
+          <Field v-slot="{ field, errors }" name="password">
+            <AuthField :model-value="field.value" label="Mật khẩu" :icon="Lock" type="password" :error="errors[0]" @update:model-value="field.onChange" />
+            <AuthPasswordRules :password="field.value || ''" />
+          </Field>
+        </div>
       </div>
 
-      <AppButton type="submit" class="w-full" :loading="isSubmitting">Tạo tổ chức</AppButton>
+      <div class="mt-6"><AuthButton type="submit" :disabled="isSubmitting">Tạo tổ chức &amp; vào hệ thống</AuthButton></div>
     </Form>
 
-    <div class="mt-6 text-center">
-      <p class="text-sm text-gray-500">
-        Đã có tổ chức?
-        <NuxtLink to="/organization/find-organization" class="text-primary-600 hover:underline ml-1">Tìm tổ chức</NuxtLink>
-      </p>
-    </div>
-  </div>
+    <template #footer>
+      <span>Đã có tổ chức? <NuxtLink to="/organization/find-organization" class="text-[#1565c0] font-semibold hover:underline underline-offset-2">Tìm tổ chức</NuxtLink></span>
+    </template>
+  </AuthCard>
 </template>
 
 <script setup lang="ts">
 import { Form, Field } from 'vee-validate'
 import * as z from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
+import { Building2, Tag, User, Mail, Lock } from 'lucide-vue-next'
 import type { Organization } from '~/types'
 
 definePageMeta({
@@ -101,7 +76,6 @@ async function onSubmit(values: any) {
   errorMsg.value = ''
   try {
     const res = await post<{ organization: Organization }>('/organization/create-organization', values)
-    // Navigate to setup flow or login
     const orgCode = res.data?.organization?.code ?? values.code
     router.push({ path: '/user/login', query: { org: orgCode, setup: '1' } })
   } catch (err: any) {

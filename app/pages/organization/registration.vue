@@ -1,93 +1,73 @@
 <template>
-  <div>
-    <!-- Logo -->
-    <div class="mb-4 text-center">
-      <img :src="logoBlue" alt="Micro ERP" class="h-14 w-auto mx-auto" >
+  <AuthCard
+    eyebrow="Tổ chức mới"
+    :title="emailSent ? 'Kiểm tra hộp thư của bạn' : 'Đăng ký tổ chức'"
+    :sub="emailSent ? `Chúng tôi đã gửi liên kết xác thực tới ${lastEmail}.` : 'Chúng tôi gửi liên kết xác thực tới email quản trị. Chưa cần thẻ thanh toán.'"
+    back-label="Về trang chủ"
+    back-to="/"
+  >
+    <div v-if="emailSent" class="-mt-2">
+      <span class="h-14 w-14 rounded-2xl flex items-center justify-center" style="background: hsl(203 89% 95%); color: hsl(203 89% 40%)">
+        <Mail :size="26" />
+      </span>
     </div>
 
-    <!-- Title + subtitle -->
-    <h2 class="text-2xl font-bold text-gray-800 mb-1">Đăng kí tạo tổ chức</h2>
-    <p class="text-sm text-gray-400 mb-5">
-      Hãy điền thông tin đăng kí tạo tổ chức của bạn và chúng tôi sẽ hỗ trợ bạn sớm nhất:
-    </p>
+    <template v-else>
+      <div v-if="serverError" class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[12.5px] text-rose-700">{{ serverError }}</div>
 
-    <!-- Success state -->
-    <div v-if="emailSent" class="mb-4 rounded bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
-      Vui lòng kiểm tra email của bạn để hoàn tất đăng kí tổ chức.
-    </div>
+      <Form v-slot="{ isSubmitting }" :validation-schema="schema" @submit="onSubmit">
+        <div class="space-y-3.5">
+          <AuthField v-model="orgName" label="Tên tổ chức" :icon="Building2" placeholder="Công ty TNHH ABC" auto-focus />
 
-    <!-- Error -->
-    <div v-if="serverError" class="mb-4 rounded bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-      {{ serverError }}
-    </div>
+          <Field v-slot="{ field, errors }" name="email">
+            <AuthField
+              :model-value="field.value"
+              label="Email quản trị"
+              :icon="Mail"
+              type="email"
+              placeholder="admin@congty.vn"
+              hint="Email này sẽ là tài khoản quản trị đầu tiên."
+              :error="errors[0]"
+              @update:model-value="field.onChange"
+            />
+          </Field>
 
-    <Form v-if="!emailSent" v-slot="{ isSubmitting }" :validation-schema="schema" @submit="onSubmit">
-      <!-- Email -->
-      <div class="mb-3">
-        <Field v-slot="{ field, errors }" name="email">
-          <input
-            v-bind="field"
-            type="email"
-            placeholder="Email"
-            autocomplete="email"
-            :class="['login-input', errors[0] && 'border-red-400']"
+          <label class="flex items-start gap-2.5 text-[12.5px] leading-relaxed text-slate-600 select-none cursor-pointer">
+            <input v-model="agreed" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-border accent-[#109cf1]">
+            <span>Tôi đã đọc và đồng ý với <a href="#" class="text-[#1565c0] font-semibold hover:underline">Điều khoản sử dụng</a>.</span>
+          </label>
+
+          <AuthButton type="submit" :disabled="isSubmitting || !agreed">{{ isSubmitting ? 'Đang xử lý...' : 'Gửi liên kết xác thực' }}</AuthButton>
+
+          <AuthDivider label="hoặc" />
+
+          <a
+            :href="`${apiBase}/registration/register-org-google`"
+            class="w-full h-11 rounded-[10px] border border-border bg-white text-[13.5px] font-semibold text-ink inline-flex items-center justify-center gap-2.5 hover:bg-slate-50 transition-colors"
           >
-          <p v-if="errors[0]" class="text-red-500 text-xs mt-1">{{ errors[0] }}</p>
-        </Field>
-      </div>
+            Đăng ký với tài khoản Google
+          </a>
+        </div>
+      </Form>
 
-      <!-- Tên tổ chức -->
-      <div class="mb-3">
-        <input
-          v-model="orgName"
-          type="text"
-          placeholder="Tên tổ chức"
-          class="login-input"
-        >
-      </div>
+      <ul class="mt-6 space-y-2">
+        <li v-for="t in benefits" :key="t" class="flex items-center gap-2 text-[12.5px] text-slate-600">
+          <span class="h-4 w-4 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center"><Check :size="10" /></span>{{ t }}
+        </li>
+      </ul>
+    </template>
 
-      <!-- Terms checkbox -->
-      <div class="mb-4 flex items-start gap-2">
-        <input id="terms" v-model="agreed" type="checkbox" class="mt-0.5 cursor-pointer" >
-        <label for="terms" class="text-sm text-gray-600 cursor-pointer">
-          Tôi đã đọc và đồng ý với
-          <a href="#" class="text-blue-500 hover:underline">Điều khoản sử dụng</a>
-        </label>
-      </div>
-
-      <!-- Submit button -->
-      <button
-        type="submit"
-        :disabled="isSubmitting || !agreed"
-        class="w-full py-2.5 bg-blue-500 text-white uppercase font-semibold text-sm tracking-wider rounded hover:bg-blue-600 transition mb-3 disabled:opacity-60"
-      >
-        {{ isSubmitting ? 'Đang xử lý...' : 'Đăng Kí' }}
-      </button>
-    </Form>
-
-    <!-- Google registration -->
-    <a
-      :href="`${apiBase}/registration/register-org-google`"
-      class="block w-full py-2.5 bg-orange-500 text-white uppercase font-semibold text-sm tracking-wider rounded hover:bg-orange-600 transition text-center mb-4"
-    >
-      Đăng Kí Với Tài Khoản Google
-    </a>
-
-    <!-- Back to login -->
-    <p class="text-sm text-gray-500">
-      Đã có tài khoản?
-      <NuxtLink to="/organization/find-organization" class="text-blue-500 hover:underline ml-1">
-        Đăng nhập
-      </NuxtLink>
-    </p>
-  </div>
+    <template #footer>
+      <span>Đã có tổ chức? <NuxtLink to="/organization/find-organization" class="text-[#1565c0] font-semibold hover:underline underline-offset-2">Đăng nhập</NuxtLink></span>
+    </template>
+  </AuthCard>
 </template>
 
 <script setup lang="ts">
 import { Form, Field } from 'vee-validate'
 import * as z from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
-import logoBlue from '~/assets/images/logoblue.png'
+import { Building2, Mail, Check } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'auth',
@@ -100,8 +80,11 @@ const config      = useRuntimeConfig()
 const apiBase     = config.public.apiBase
 const serverError = ref('')
 const emailSent   = ref(false)
+const lastEmail   = ref('')
 const orgName     = ref('')
 const agreed      = ref(false)
+
+const benefits = ['Dùng thử 30 ngày đầy đủ tính năng', 'Nhập dữ liệu nhân sự từ Excel', 'Huỷ bất cứ lúc nào']
 
 const schema = toTypedSchema(
   z.object({
@@ -121,6 +104,7 @@ async function onSubmit(values: Record<string, unknown>) {
       }
     )
     if (res.status === 1) {
+      lastEmail.value = values.email as string
       emailSent.value = true
     } else {
       serverError.value = res.message || 'Có lỗi xảy ra, vui lòng thử lại.'
@@ -130,20 +114,3 @@ async function onSubmit(values: Record<string, unknown>) {
   }
 }
 </script>
-
-<style scoped>
-.login-input {
-  display: block;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  outline: none;
-  transition: border-color 0.15s;
-}
-.login-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-</style>

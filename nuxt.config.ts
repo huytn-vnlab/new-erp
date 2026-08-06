@@ -13,7 +13,7 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
   ],
 
-  css: ['~/assets/css/main.css'],
+  css: ['~/assets/css/main.css', '~/assets/css/auth.css'],
 
   runtimeConfig: {
     public: {

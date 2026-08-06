@@ -1,26 +1,26 @@
 <template>
-  <div>
-    <h2 class="text-xl font-semibold text-gray-800 mb-2 text-center">Xác nhận tổ chức</h2>
-    <p class="text-sm text-gray-500 text-center mb-6">Xác minh email để kích hoạt tổ chức của bạn.</p>
-
-    <div v-if="loading" class="flex justify-center py-8"><AppSpinner /></div>
+  <AuthCard :title="cardTitle" :sub="cardSub">
+    <div v-if="loading" class="flex justify-center py-8"><Loader2 :size="28" class="animate-spin text-slate-300" /></div>
 
     <template v-else>
-      <AppAlert v-if="success" variant="success" class="mb-4">
-        Tổ chức đã được kích hoạt thành công! Bạn có thể đăng nhập ngay.
-      </AppAlert>
-      <AppAlert v-else-if="errorMsg" variant="error" class="mb-4">{{ errorMsg }}</AppAlert>
-
-      <div class="text-center mt-4">
-        <NuxtLink to="/organization/find-organization" class="text-sm text-primary-600 hover:underline">
-          Đến trang đăng nhập
-        </NuxtLink>
+      <div class="-mt-2">
+        <span
+          class="h-14 w-14 rounded-2xl flex items-center justify-center"
+          :style="success ? 'background: hsl(152 60% 95%); color: hsl(155 60% 32%)' : 'background: hsl(0 72% 95%); color: hsl(0 65% 45%)'"
+        >
+          <Check v-if="success" :size="26" />
+          <X v-else :size="26" />
+        </span>
+        <div v-if="errorMsg && !success" class="mt-4 text-[12.5px] text-rose-700">{{ errorMsg }}</div>
+        <div class="mt-6"><AuthButton @click="router.push('/organization/find-organization')">Đến trang đăng nhập</AuthButton></div>
       </div>
     </template>
-  </div>
+  </AuthCard>
 </template>
 
 <script setup lang="ts">
+import { Check, X, Loader2 } from 'lucide-vue-next'
+
 definePageMeta({
   layout: 'auth',
   middleware: 'guest',
@@ -29,10 +29,14 @@ definePageMeta({
 useHead({ title: 'Xác nhận tổ chức — Micro ERP' })
 
 const route    = useRoute()
+const router   = useRouter()
 const { post } = useApi()
 const loading  = ref(true)
 const success  = ref(false)
 const errorMsg = ref('')
+
+const cardTitle = computed(() => (loading.value ? 'Xác nhận tổ chức' : success.value ? 'Tổ chức đã được kích hoạt' : 'Xác nhận thất bại'))
+const cardSub = computed(() => (loading.value ? 'Đang xác minh email để kích hoạt tổ chức của bạn.' : success.value ? 'Bạn có thể đăng nhập ngay.' : undefined))
 
 onMounted(async () => {
   try {
